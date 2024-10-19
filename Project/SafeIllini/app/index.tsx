@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
+import React from "react";
 
 export default function Index() {
   return (
