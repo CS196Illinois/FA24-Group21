@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Text, View, Button, ScrollView } from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
-import { ref, set, onValue } from 'firebase/database';
-import React from "react";
 import { ref, getDatabase, push, set, onValue, child, get } from 'firebase/database';
 
 export default function Index() {

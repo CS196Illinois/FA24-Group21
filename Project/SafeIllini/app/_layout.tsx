@@ -1,10 +1,11 @@
-import { Stack } from "expo-router";
+import { Stack, Tabs } from "expo-router";
 import React from "react";
 
 export default function RootLayout() {
   return (
-    <Stack>
+    <Tabs>
       <Stack.Screen name="index" />
-    </Stack>
+      <Stack.Screen name="report-incident" />
+    </Tabs>
   );
 }
