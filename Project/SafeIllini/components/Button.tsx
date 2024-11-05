@@ -21,20 +21,20 @@ const styles = StyleSheet.create({
         backgroundColor: "#FF1199",
         alignItems: 'center',
         height: 50,
-        width: 60,
+        width: 100,
         marginHorizontal: '50%',
-        marginVertical: 10
+        marginVertical: 10,
+        borderRadius: 10
     },
     button: {
         backgroundColor: "#000099",
         alignItems: "center",
         borderRadius: 10,
         width: '90%',
-        height: '90%'
-
+        height: '90%',
+        marginVertical: '2%'
     },
     buttonLabel: {
-        // backgroundColor: "",
         color: "#FFFFFF"
     }
 });
