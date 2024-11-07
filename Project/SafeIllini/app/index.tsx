@@ -1,10 +1,22 @@
 import { Text, StyleSheet, View } from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
-import { ref, set, onValue } from 'firebase/database';
+import { ref, set, onValue, get } from 'firebase/database';
 import MapView from 'react-native-maps';
 import { Platform } from "react-native";
 import { Heatmap } from 'react-native-maps';
 import { red } from "react-native-reanimated/lib/typescript/reanimated2/Colors";
+import React, {useState, useEffect}  from "react";
+
+interface Incident {
+  id: string;
+  type: string;
+  severity: string;
+  location: { latitude: number; longitude: number };
+  timestamp: number;
+  description?: string;
+  photos?: { [key: string]: string };
+}
+
 
 const getPointColor = (type) => {
   switch (type) {
@@ -20,6 +32,37 @@ const getPointColor = (type) => {
 };
 
 export default function Index() {
+  const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
+  const db = ref(database);
+  const fetchIncidents = async () => {
+    try {
+      const snapshot = await get(child(db, 'incidents'));
+      if (snapshot.exists()) {
+        // we need to define the type of incidentsData as an array of objects with the above fields 
+        // bc typescript doesn't know the type of data in the array and we need to tell it
+        const incidentsData: Incident[] = []; 
+        snapshot.forEach((childSnapshot) => {
+          incidentsData.push({
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          });
+        });
+        setIncidents(incidentsData);
+      } else {
+        console.log("No data available");
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  //call the incidents array(top) when doing the first loop for the location data//
+  //then another loop to add to the heatmapPoints//
+
   const heatmapPoints = [
     { latitude: 40.107, longitude: -88.23, weight: 1, type: 'high' }, 
     { latitude: 40.103, longitude: -88.23, weight: 1, type: 'low' },
