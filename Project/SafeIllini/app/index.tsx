@@ -1,6 +1,6 @@
 import { Text, StyleSheet, View } from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
-import { ref, set, onValue, get } from 'firebase/database';
+import { ref, set, onValue, get, child } from 'firebase/database';
 import MapView from 'react-native-maps';
 import { Platform } from "react-native";
 import { Heatmap } from 'react-native-maps';
@@ -43,6 +43,7 @@ export default function Index() {
   const [heatmapPoints, setHeatmapPoints] = useState<
     { latitude: number; longitude: number; weight: number; type: string }[]
   >([]);
+  // I think the problem with the code is here because maybe "database" is not a valid thing :/ ?
   const db = ref(database);
   const fetchIncidents = async () => {
     try {
