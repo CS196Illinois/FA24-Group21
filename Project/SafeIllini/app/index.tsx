@@ -7,17 +7,6 @@ import { Heatmap } from 'react-native-maps';
 import { red } from "react-native-reanimated/lib/typescript/reanimated2/Colors";
 import React, {useState, useEffect}  from "react";
 
-interface Incident {
-  id: string;
-  type: string;
-  severity: string;
-  location: { latitude: number; longitude: number };
-  timestamp: number;
-  description?: string;
-  photos?: { [key: string]: string };
-}
-
-
 const getPointColor = (type) => {
   switch (type) {
     case 'low':
@@ -31,8 +20,29 @@ const getPointColor = (type) => {
   }
 };
 
+interface Incident {
+  id: string;
+  type: string;
+  severity: string;
+  location: { latitude: number; longitude: number };
+  timestamp: number;
+  description?: string;
+  photos?: { [key: string]: string };
+}
+
 export default function Index() {
+  // const heatmapPoints = [
+  //   { latitude: 40.107, longitude: -88.23, weight: 1, type: 'high' }, 
+  //   { latitude: 40.103, longitude: -88.23, weight: 1, type: 'low' },
+  //   { latitude: 40.105, longitude: -88.23, weight: 1, type: 'medium' }
+  // ];
+
+  const pointTypes = ['low', 'medium', 'high']; 
+
   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
+  const [heatmapPoints, setHeatmapPoints] = useState<
+    { latitude: number; longitude: number; weight: number; type: string }[]
+  >([]);
   const db = ref(database);
   const fetchIncidents = async () => {
     try {
@@ -60,16 +70,16 @@ export default function Index() {
     fetchIncidents();
   }, []);
 
-  //call the incidents array(top) when doing the first loop for the location data//
-  //then another loop to add to the heatmapPoints//
-
-  const heatmapPoints = [
-    { latitude: 40.107, longitude: -88.23, weight: 1, type: 'high' }, 
-    { latitude: 40.103, longitude: -88.23, weight: 1, type: 'low' },
-    { latitude: 40.105, longitude: -88.23, weight: 1, type: 'medium' }
-  ];
-
-  const pointTypes = ['low', 'medium', 'high']; 
+  useEffect(() => {
+    // Transform incidents into heatmapPoints
+    const points = incidents.map((incident) => ({
+      latitude: incident.location.latitude,
+      longitude: incident.location.longitude,
+      weight: 1, // or any logic to determine weight
+      type: incident.severity
+    }));
+    setHeatmapPoints(points);
+  }, [incidents]);
 
   return (
     <View style={styles.container}>
