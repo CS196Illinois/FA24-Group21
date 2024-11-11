@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { Text, View, StyleSheet, Platform, Pressable } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "../../components/Button";
@@ -7,15 +6,17 @@ import * as Location from 'expo-location';
 import { database, auth } from "../../configs/firebaseConfig"
 import { ref, getDatabase, push, set, onValue, child, get } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function AddIncident() {
     const [latitude, setLatitude] = useState<number | undefined>(undefined);
     const [longitude, setLongitude] = useState<number | undefined>(undefined);
     const [description, setDescription] = useState<string | undefined>(undefined);
-    const [time, setTime] = useState<number | undefined>(undefined);
+    const [timestamp, setTimestamp] = useState<number | undefined>(undefined);
     const date = new Date();
     const [type, setType] = useState<string | undefined>(undefined);
-    const [photos, setPhotos] = useState(new Map());
+    const [photos, setPhotos] = useState([]);
+
     const [severity, setSeverity] = useState<string | undefined>('Choose Severity');
     /*    interface Incident {
             id: string,
@@ -37,6 +38,7 @@ export default function AddIncident() {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 setErrorMsg('Location permissions denied');
+                console.log(errorMsg);
             }
             loadLocation();
         })();
@@ -46,30 +48,45 @@ export default function AddIncident() {
         let location = await Location.getCurrentPositionAsync();
         setLatitude(location.coords.latitude);
         setLongitude(location.coords.longitude);
-        setTime(location.timestamp);
+        setTimestamp(location.timestamp);
         date.setSeconds(location.timestamp);
     }
 
-    const addIncident = () => {
-        if (severity === 'Choose Severity') {
-            setSeverity(undefined);
+    const pickImageAsync = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsMultipleSelection: true,
+          quality: 1
+        })
+    
+        if (!result.canceled) {
+            let photoArr = [];
+            for(let i = 0; i <= result.assets.length; i++) {
+                photoArr[i] = finish this line;
+            }
+        } else {
+            alert('No images selected');
         }
-        const ourReference = push(ref(database, 'incidents'));
-        const id = ourReference.toString();
-        /* set(ourReference, {
-            location: {
-                longitude,
-                latitude
-            },
-            type,
-            severity,
-            time,
-            photos,
-            description
-        });
-        */
-        alert(id);
+      };
 
+    const addIncident = () => {
+        if (true) {
+            const ourReference = push(ref(database, 'incidents'));
+            const id = ourReference.toString();
+            set(ourReference, {
+                location: {
+                    longitude,
+                    latitude
+                },
+                type,
+                severity,
+                timestamp,
+                photos,
+                description
+            });
+        } else {
+            alert('Complete the form please!');
+        }
     }
 
     const addDescrption = () => {
@@ -85,12 +102,20 @@ export default function AddIncident() {
                     </Text>
                 </View>
                 <Button label="Update Location:" onPress={loadLocation} />
-                <View style={styles.severityContainer}>
-                    <Picker style={styles.severityDropDown}
+                <View style={styles.pickerContainer}>
+                    <Picker style={styles.pickerDropDown}
+                        selectedValue={type}
+                        onValueChange={(itemValue) => setType(itemValue)}>
+                        <Picker.Item label="Choose type" value={null} />
+                        <Picker.Item label="Harrassment" value="Harrassment" />
+                        <Picker.Item label="Drunk Driving" value="Drunk Driving" />
+                        <Picker.Item label="High Noise" value="High Noise" />
+                    </Picker>
+                </View>
+                <View style={styles.pickerContainer}>
+                    <Picker style={styles.pickerDropDown}
                         selectedValue={severity}
-                        onValueChange={(itemValue) =>
-                            setSeverity(itemValue)
-                        }>
+                        onValueChange={(itemValue) => setSeverity(itemValue)}>
                         <Picker.Item label="Choose Severity" value={null} />
                         <Picker.Item label="Low" value="Low" />
                         <Picker.Item label="Medium" value="Medium" />
@@ -121,7 +146,8 @@ export default function AddIncident() {
                     </TextInput>
                 </View>
                 <Button label="Description:" onPress={addDescrption} />
-                <Button label="Submit Incident" onPress={() => alert('Added Incident')} />
+                <Button label="Submit Photos" onPress={pickImageAsync} />
+                <Button label="Submit Incident" onPress={addIncident} />
             </View>
         </GestureHandlerRootView>
         /* 
@@ -163,7 +189,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 10
     },
-    severityContainer: {
+    pickerContainer: {
         borderWidth: 1,
         width: '100%',
         margin: 5,
@@ -171,7 +197,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
         justifyContent: 'center',
     },
-    severityDropDown: {
+    pickerDropDown: {
         width: 200,
         borderWidth: 1,
     }
