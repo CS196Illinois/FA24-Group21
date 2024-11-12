@@ -7,7 +7,7 @@ import { Heatmap } from 'react-native-maps';
 import { red } from "react-native-reanimated/lib/typescript/reanimated2/Colors";
 import React, {useState, useEffect}  from "react";
 
-const getPointColor = (type) => {
+const getPointColor = (type: any) => {
   switch (type) {
     case 'low':
       return '#930808';
@@ -29,6 +29,7 @@ interface Incident {
   description?: string;
   photos?: { [key: string]: string };
 }
+const db = ref(database);
 
 export default function Index() {
   // const heatmapPoints = [
@@ -44,7 +45,6 @@ export default function Index() {
     { latitude: number; longitude: number; weight: number; type: string }[]
   >([]);
   // I think the problem with the code is here because maybe "database" is not a valid thing :/ ?
-  const db = ref(database);
   const fetchIncidents = async () => {
     try {
       const snapshot = await get(child(db, 'incidents'));
@@ -59,6 +59,14 @@ export default function Index() {
           });
         });
         setIncidents(incidentsData);
+        console.log(incidentsData);
+        const points = incidentsData.map((incident) => ({
+          latitude: incident.location.latitude,
+          longitude: incident.location.longitude,
+          weight: 1, // or any logic to determine weight
+          type: incident.severity
+        }));
+        setHeatmapPoints(points);
       } else {
         console.log("No data available");
       }
@@ -69,18 +77,26 @@ export default function Index() {
 
   useEffect(() => {
     fetchIncidents();
+    // // Transform incidents into heatmapPoints
+    // const points = incidents.map((incident) => ({
+    //   latitude: incident.location.latitude,
+    //   longitude: incident.location.longitude,
+    //   weight: 1, // or any logic to determine weight
+    //   type: incident.severity
+    // }));
+    // setHeatmapPoints(points);
   }, []);
 
-  useEffect(() => {
-    // Transform incidents into heatmapPoints
-    const points = incidents.map((incident) => ({
-      latitude: incident.location.latitude,
-      longitude: incident.location.longitude,
-      weight: 1, // or any logic to determine weight
-      type: incident.severity
-    }));
-    setHeatmapPoints(points);
-  }, [incidents]);
+  // useEffect(() => {
+  //   // Transform incidents into heatmapPoints
+  //   const points = incidents.map((incident) => ({
+  //     latitude: incident.location.latitude,
+  //     longitude: incident.location.longitude,
+  //     weight: 1, // or any logic to determine weight
+  //     type: incident.severity
+  //   }));
+  //   setHeatmapPoints(points);
+  // }, [incidents]);
 
   return (
     <View style={styles.container}>
@@ -93,7 +109,7 @@ export default function Index() {
         longitudeDelta: 0.000000001,
       }}
     >
-      {pointTypes.map((type) => (
+      {heatmapPoints.length > 0 && pointTypes.map((type) => (
           <Heatmap
             key = {type}
             points={heatmapPoints.filter(point => point.type === type)}
