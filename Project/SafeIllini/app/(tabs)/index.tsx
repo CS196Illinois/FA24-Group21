@@ -3,20 +3,23 @@ import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, Toucha
 import { Picker } from "@react-native-picker/picker";
 import { database, auth } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
+import MapView, { Marker } from 'react-native-maps';
 
+interface PinPosition {
+  latitude: number;
+  longitude: number;
+  type: string;
+  timestamp: string;
+}
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState("all");
-  const [pinPosition, setPinPosition] = useState(null);
+  const [pinPosition, setPinPosition] = useState<PinPosition | null>(null);
 
   const handleLongPress = (event: any) => {
-    const { locationX, locationY } = event.nativeEvent;
-    const latitude = (locationY * 0.0001).toFixed(4);
-    const longitude = (locationX * 0.0001).toFixed(4);
-
+    // const { locationX, locationY } = event.nativeEvent;
+    const { latitude, longitude } = event.nativeEvent.coordinate;
     setPinPosition({ 
-      x: locationX, 
-      y: locationY, 
       latitude, 
       longitude, 
       type: selectedIncidentType,
@@ -59,27 +62,32 @@ export default function Home() {
         </Picker>
       </View>
 
-      <TouchableWithoutFeedback onLongPress={handleLongPress}>
-        <Image
-          source={{ uri: "https://scs.illinois.edu/sites/default/files/inline-images/nl_campus_map.gif" }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      </TouchableWithoutFeedback>
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 40.1020, // UIUC Main Quad coordinates
+          longitude: -88.2272,
+          latitudeDelta: 0.0222,
+          longitudeDelta: 0.0121,
+        }}
+        onLongPress={handleLongPress}
+      >
+        {pinPosition && (
+          <Marker
+            coordinate={{
+              latitude: pinPosition.latitude,
+              longitude: pinPosition.longitude
+            }}
+            pinColor={getPinColor(pinPosition.type)}
+            title={selectedIncidentType.replace('_', ' ').toUpperCase()}
+            description={`Reported at ${new Date(pinPosition.timestamp).toLocaleString()}`}
+          />
+        )}
+      </MapView>
 
       <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
         <Text style={styles.sosButtonText}>SOS</Text>
       </TouchableOpacity>
-
-      {pinPosition && (
-        <View style={[styles.pinContainer, { top: pinPosition.y - 50, left: pinPosition.x - 10 }]}>
-          <View style={[styles.pin, { backgroundColor: getPinColor(pinPosition.type) }]} />
-          <View style={styles.bubble}>
-            <Text style={styles.bubbleText}>Lat: {pinPosition.latitude}</Text>
-            <Text style={styles.bubbleText}>Lon: {pinPosition.longitude}</Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -89,56 +97,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pickerContainer: {
-    position: "absolute",
+    position: 'absolute',
     top: 20,
     left: 0,
     right: 0,
     zIndex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     paddingHorizontal: 20,
   },
   picker: {
-    width: "100%",
+    width: '100%',
   },
-  image: {
+  map: {
     flex: 1,
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   sosButton: {
-    position: "absolute",
+    position: 'absolute',
     right: 20,
     bottom: 40,
-    backgroundColor: "red",
+    backgroundColor: 'red',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 30,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   sosButtonText: {
-    color: "white",
-    fontWeight: "bold",
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
-  },
-  pinContainer: {
-    position: "absolute",
-    alignItems: "center",
-  },
-  pin: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderColor: "white",
-    borderWidth: 2,
-  },
-  bubble: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 5,
-    borderRadius: 5,
-    marginTop: 5,
-  },
-  bubbleText: {
-    color: "white",
-    fontSize: 12,
   },
 });
 
