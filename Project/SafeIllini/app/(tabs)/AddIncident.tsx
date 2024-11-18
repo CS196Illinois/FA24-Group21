@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Platform, Pressable } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "../../components/Button";
 import * as Location from 'expo-location';
-import { database, auth } from "../../configs/firebaseConfig"
-import { ref, getDatabase, push, set, onValue, child, get } from 'firebase/database';
+import { database } from "../../configs/firebaseConfig"
+import { ref, push, set, update, child } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Image } from "expo-image";
 
 export default function AddIncident() {
     const [latitude, setLatitude] = useState<number | undefined>(undefined);
@@ -15,22 +16,8 @@ export default function AddIncident() {
     const [timestamp, setTimestamp] = useState<number | undefined>(undefined);
     const date = new Date();
     const [type, setType] = useState<string | undefined>(undefined);
-    const [photos, setPhotos] = useState([]);
-
+    const [photos, setPhotos] = useState<string[]>([]);
     const [severity, setSeverity] = useState<string | undefined>('Choose Severity');
-    /*    interface Incident {
-            id: string,
-            location: {
-                longitude: number,
-                latitude: number
-            },
-            type: string,
-            severity: string,
-            time: number,
-            photos?: Map<number, string>;
-            description?: string
-        }
-    */
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
@@ -54,25 +41,26 @@ export default function AddIncident() {
 
     const pickImageAsync = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsMultipleSelection: true,
-          quality: 1
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsMultipleSelection: true,
+            quality: 1
         })
-    
+
         if (!result.canceled) {
-            let photoArr = [];
-            for(let i = 0; i <= result.assets.length; i++) {
-                photoArr[i] = finish this line;
+            let photoArrUri = [];
+            for (let i = 0; i <= result.assets.length; i++) {
+                photoArrUri[i] = result.assets[i].uri;
             }
+            setPhotos(photoArrUri);
         } else {
             alert('No images selected');
         }
-      };
+    };
 
     const addIncident = () => {
-        if (true) {
+        if (timestamp != undefined && latitude != undefined && longitude != undefined && type != undefined && severity != undefined) {
             const ourReference = push(ref(database, 'incidents'));
-            const id = ourReference.toString();
+
             set(ourReference, {
                 location: {
                     longitude,
@@ -80,10 +68,14 @@ export default function AddIncident() {
                 },
                 type,
                 severity,
-                timestamp,
-                photos,
-                description
+                timestamp
             });
+            if (description != undefined && description.length > 0) {
+                update(ourReference, { description: description });
+            }
+            if (photos.length > 0) {
+                // update(ourReference, {description: description});
+            }
         } else {
             alert('Complete the form please!');
         }
@@ -95,7 +87,6 @@ export default function AddIncident() {
 
     return (
         <GestureHandlerRootView>
-            <View>
                 <View style={styles.genericContainer}>
                     <Text style={styles.textInput}>
                         Latitude: {latitude}    Longitude: {longitude}
@@ -106,17 +97,21 @@ export default function AddIncident() {
                     <Picker style={styles.pickerDropDown}
                         selectedValue={type}
                         onValueChange={(itemValue) => setType(itemValue)}>
-                        <Picker.Item label="Choose type" value={null} />
+                        <Picker.Item label="Choose type" value={undefined} />
                         <Picker.Item label="Harrassment" value="Harrassment" />
                         <Picker.Item label="Drunk Driving" value="Drunk Driving" />
                         <Picker.Item label="High Noise" value="High Noise" />
+                        <Picker.Item label="Other" value="Other" />
                     </Picker>
+                </View>
+                <View style={styles.genericContainer}>
+                    <Image source="https://drive.google.com/file/d/1O4CeHSwUJk0i6HKVlsac3PxodVhONePg/view?usp=sharing" />
                 </View>
                 <View style={styles.pickerContainer}>
                     <Picker style={styles.pickerDropDown}
                         selectedValue={severity}
                         onValueChange={(itemValue) => setSeverity(itemValue)}>
-                        <Picker.Item label="Choose Severity" value={null} />
+                        <Picker.Item label="Choose Severity" value={undefined} />
                         <Picker.Item label="Low" value="Low" />
                         <Picker.Item label="Medium" value="Medium" />
                         <Picker.Item label="High" value="High" />
@@ -136,6 +131,8 @@ export default function AddIncident() {
                 </View>
                 <View style={styles.screenContainer}>
                     <TextInput
+                        defaultValue="Type Description Here..."
+                        selectTextOnFocus
                         style={styles.textInput}
                         multiline
                         editable
@@ -145,22 +142,9 @@ export default function AddIncident() {
                     >
                     </TextInput>
                 </View>
-                <Button label="Description:" onPress={addDescrption} />
                 <Button label="Submit Photos" onPress={pickImageAsync} />
                 <Button label="Submit Incident" onPress={addIncident} />
-            </View>
         </GestureHandlerRootView>
-        /* 
-        * Header
-        * Incident Report
-        * Button
-        * Another Button
-        * 
-        * Time Selection
-        * 
-        * 
-        * Bar at the bottom
-        */
     );
 }
 
@@ -191,14 +175,14 @@ const styles = StyleSheet.create({
     },
     pickerContainer: {
         borderWidth: 1,
-        width: '100%',
+        width: '50%',
         margin: 5,
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
     },
     pickerDropDown: {
-        width: 200,
+        width: 180,
         borderWidth: 1,
     }
 });

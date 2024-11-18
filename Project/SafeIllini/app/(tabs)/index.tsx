@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Text, View, Button, ScrollView } from "react-native";
-import { database, auth } from "../configs/firebaseConfig"
 import { ref, getDatabase, push, set, onValue, child, get } from 'firebase/database';
 
 
