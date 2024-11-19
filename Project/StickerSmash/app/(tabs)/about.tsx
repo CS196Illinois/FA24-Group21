@@ -1,10 +1,10 @@
-import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
+import React from 'react';
 
-export default function AddIncident() {
+export default function AboutScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Statistics</Text>
+      <Text style={styles.text}>About screen</Text>
     </View>
   );
 }
@@ -13,8 +13,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#25292e',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   text: {
     color: '#fff',
