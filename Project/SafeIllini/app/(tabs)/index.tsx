@@ -5,7 +5,8 @@ import { database } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
-
+import { Incident, IncidentType } from '@/types/incidents';
+import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
 // using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
 /**
 * @typedef {Object} Incident
@@ -19,15 +20,15 @@ import MapView, { Marker } from 'react-native-maps';
 * @property {number} timestamp - The timestamp of when the incident occurred.
 * @property {Object} [photos] - An object containing photos related to the incident.
 **/
-interface Incident {
-  id: string;
-  type: string;
-  severity: string;
-  location: { latitude: number; longitude: number };
-  timestamp: number;
-  description?: string;
-  photos?: { [key: string]: string };
-}
+// interface Incident {
+//   id: string;
+//   type: string;
+//   severity: string;
+//   location: { latitude: number; longitude: number };
+//   timestamp: number;
+//   description?: string;
+//   photos?: { [key: string]: string };
+// }
 
 // sample incident data for testing purposes
 // const dummyIncidents: Incident[] = [
@@ -140,15 +141,18 @@ export default function Home() {
       });
   };
  // determine marker color based on incident type
-  const getPinColor = (incidentType: string) => {
-    switch (incidentType) {
-      case "sexual_harassment": return "red";
-      case "drunk_driving": return "orange";
-      case "theft": return "yellow";
-      case "assault": return "blue";
-      default: return "green";
-    }
-  };
+ const getPinColor = (incidentType: IncidentType) => {
+  return PIN_COLORS[incidentType] || 'black';
+};
+// const getPinColor = (incidentType: string) => {
+//   switch (incidentType) {
+//     case "sexual_harassment": return "red";
+//     case "drunk_driving": return "orange";
+//     case "theft": return "yellow";
+//     case "assault": return "blue";
+//     default: return "green";
+//   }
+// };
 
   return (
     <View style={styles.container}>
@@ -160,10 +164,9 @@ export default function Home() {
         >
           {/* Picker options for different incident types */}
           <Picker.Item label="All Incidents" value="all" />
-          <Picker.Item label="Sexual Harassment" value="sexual_harassment" />
-          <Picker.Item label="Drunk Driving" value="drunk_driving" />
-          <Picker.Item label="Theft" value="theft" />
-          <Picker.Item label="Assault" value="assault" />
+          {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
+            <Picker.Item key={value} label={label} value={value} />
+          ))}
         </Picker>
       </View>
        {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}

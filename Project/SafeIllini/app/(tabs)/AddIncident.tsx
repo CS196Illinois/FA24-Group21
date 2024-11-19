@@ -10,13 +10,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from "expo-image";
 import { useLocalSearchParams } from 'expo-router';
 
+import { Incident, IncidentType, SeverityLevel } from '@/types/incidents';
+import { INCIDENT_TYPE_LABELS, SEVERITY_LEVEL_LABELS } from '@/constants/Incidents';
+
 interface LocationState {
     latitude: number | undefined;
     longitude: number | undefined;
     timestamp: number | undefined;
   }
 
-type IncidentType = 'sexual_harassment' | 'drunk_driving' | 'assault' | 'theft' | undefined;
 export default function AddIncident() {
     const params = useLocalSearchParams();
     const [location, setLocation] = useState<LocationState>({
@@ -108,11 +110,9 @@ export default function AddIncident() {
                     <Picker style={styles.pickerDropDown}
                         selectedValue={type}
                         onValueChange={(itemValue) => setType(itemValue)}>
-                        <Picker.Item label="Choose type" value={undefined} />
-                        <Picker.Item label="Harrassment" value="Harrassment" />
-                        <Picker.Item label="Drunk Driving" value="Drunk Driving" />
-                        <Picker.Item label="High Noise" value="High Noise" />
-                        <Picker.Item label="Other" value="Other" />
+                        {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
+                            <Picker.Item key={value} label={label} value={value} />
+                        ))}
                     </Picker>
                 </View>
                 <View style={styles.genericContainer}>
@@ -123,9 +123,9 @@ export default function AddIncident() {
                         selectedValue={severity}
                         onValueChange={(itemValue) => setSeverity(itemValue)}>
                         <Picker.Item label="Choose Severity" value={undefined} />
-                        <Picker.Item label="Low" value="Low" />
-                        <Picker.Item label="Medium" value="Medium" />
-                        <Picker.Item label="High" value="High" />
+                        {SEVERITY_LEVEL_LABELS.map(({ label, value }) => (
+                            <Picker.Item key={value} label={label} value={value} />
+                        ))}
                     </Picker>
                 </View>
                 <View style={styles.genericContainer}>
