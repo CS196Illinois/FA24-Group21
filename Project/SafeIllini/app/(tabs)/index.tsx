@@ -50,40 +50,49 @@ const dummyIncidents: Incident[] = [
     },
     timestamp: Date.now(),
     description: "Incident on Green Street"
+  },
+  {
+    id: "4",
+    type: "assault",
+    severity: "high",
+    location: {
+      latitude: 40.105487, // West of Campus
+      longitude: -88.2439389
+    },
+    timestamp: Date.now(),
+    description: "Incident slightly west of campus"
   }
 ];
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState("all");
-  // const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   
-  // useEffect(() => {
-  //   const incidentsRef = ref(database, 'incidents');
-  //   // onValue function returns a func that when called, stops listening for updates.
-  //   // We call it "unsubscribe" because it:
-  //   // Terminates the subscription to Firebase updates and Removes the listener
-  //   const unsubscribe = onValue(incidentsRef, (snapshot) => {  
-  //     const data = snapshot.val();
-  //     if (data) {
-  //       const incidentsData = Object.entries(data).map(([key, value]: [string, any]) => ({
-  //         id: key,
-  //         type: value.type,
-  //         severity: value.severity,
-  //         location: value.location,
-  //         timestamp: value.timestamp,
-  //         description: value.description,
-  //         photos: value.photos
-  //       }));
-  //       setIncidents(incidentsData);
-  //       console.log("Incidents data:", incidentsData);
-  //     } else {
-  //       console.log("No data available");
-  //       setIncidents([]);
-  //     }
-  //   });
+  useEffect(() => {
+    const incidentsRef = ref(database, 'incidents');
+    // onValue function returns a func that when called, stops listening for updates.
+    // We call it "unsubscribe" because it:
+    // Terminates the subscription to Firebase updates and Removes the listener
+    const unsubscribe = onValue(incidentsRef, (snapshot) => {  
+      const data = snapshot.val();
+      if (data) {
+        const incidentsData: Incident[] = [];
+        snapshot.forEach((childSnapshot) => {
+          incidentsData.push({
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          });
+        });
+        setIncidents(incidentsData);
+        console.log("Incidents data:", incidentsData);
+      } else {
+        console.log("No data available");
+        setIncidents([]);
+      }
+    });
 
-  //   return () => unsubscribe()
-  // }, []);
+    return () => unsubscribe()
+  }, []);
 
   const handleLongPress = (event: any) => {
     // const { locationX, locationY } = event.nativeEvent;
@@ -150,7 +159,7 @@ export default function Home() {
 				}}
         onLongPress={handleLongPress}
       >
-        {dummyIncidents
+        {incidents
           .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
           .map((incident) => (
             <Marker
@@ -159,50 +168,17 @@ export default function Home() {
                 latitude: incident.location.latitude,
                 longitude: incident.location.longitude,
               }}
-              title="Test Marker"
-              description="This is a test marker"
-              pinColor="red"
-              // pinColor={getPinColor(incident.type)}
-              // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
-              // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+              pinColor={getPinColor(incident.type)}
+              title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+              description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+              // pinColor="red"
+              // title="Test Marker"
+              // description="This is a test marker"
             />
           )
           )
         }
       </MapView>
-      {/* <MapView
-        style={styles.map}
-        provider="google"
-        mapType="satellite"
-        initialRegion={{
-          latitude: 40.1020,
-          longitude: -88.2272,
-          latitudeDelta: 0.0222,
-          longitudeDelta: 0.0121,
-          }}
-        onMapReady={() => {
-          console.log('Map ready');
-        }}
-        onLongPress={handleLongPress}
-      >
-        {dummyIncidents
-          .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
-          .map((incident) => (
-            <Marker
-              key={incident.id}
-              coordinate={{
-                latitude: 40.1020,
-                longitude: -88.2272,
-              }}
-              title="Test Marker"
-              description="This is a test marker"
-              pinColor="red"
-              // pinColor={getPinColor(incident.type)}
-              // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
-              // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
-            />
-          ))}
-      </MapView> */}
 
       <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
         <Text style={styles.sosButtonText}>SOS</Text>
