@@ -148,7 +148,8 @@ export default function AddIncident() {
                 <Button label="Submit Photos" onPress={pickImageAsync} />
                 <Button label="Submit Incident" onPress={addIncident} />
         </GestureHandlerRootView>
-    );
+        );
+}
 
 const styles = StyleSheet.create({
     screenContainer: {
