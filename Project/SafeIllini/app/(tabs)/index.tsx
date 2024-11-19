@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { database, auth } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
+import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
 
 interface PinPosition {
@@ -15,7 +16,6 @@ interface PinPosition {
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState("all");
   const [pinPosition, setPinPosition] = useState<PinPosition | null>(null);
-
   const handleLongPress = (event: any) => {
     // const { locationX, locationY } = event.nativeEvent;
     const { latitude, longitude } = event.nativeEvent.coordinate;
@@ -24,6 +24,17 @@ export default function Home() {
       longitude, 
       type: selectedIncidentType,
       timestamp: new Date().toISOString()
+    });
+    // https://docs.expo.dev/router/advanced/nesting-navigators/#navigate-to-a-screen-in-a-nested-navigator
+    // since we're using expo router, we need to handle navigation differently
+    // we dont' define navigation types. instead, we can just use router.push() to send info from one screen to another
+    // the params AKA data we pass will be avail in the AddIncident screen through useLocalSearchParams()
+    router.push({
+      pathname: "/AddIncident",
+      params: {
+        latitude,
+        longitude,
+      }
     });
   };
 

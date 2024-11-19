@@ -1,9 +1,12 @@
 import { Text, View, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function AddIncident() {
+  const params = useLocalSearchParams();
+  const { latitude, longitude } = params;
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Add Incident</Text>
+      <Text style={styles.text}>{latitude},{longitude}</Text>
     </View>
   );
 }
