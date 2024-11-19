@@ -146,24 +146,42 @@ export default function Home() {
           longitudeDelta: 0.0121,
         }}
         onMapReady={() => {
-					console.log('Map ready');
+          console.log('Map ready');
 				}}
         onLongPress={handleLongPress}
       >
-        <Marker
-          coordinate={{
-            latitude: 40.1020,
-            longitude: -88.2272,
-          }}
-        />
+        {dummyIncidents
+          .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
+          .map((incident) => (
+            <Marker
+              key={incident.id}
+              coordinate={{
+                latitude: 41.1020,
+                longitude: -88.2272,
+              }}
+              title="Test Marker"
+              description="This is a test marker"
+              pinColor="red"
+              // pinColor={getPinColor(incident.type)}
+              // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+              // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+            />
+          )
+          )
+        }
       </MapView>
       {/* <MapView
         style={styles.map}
+        provider="google"
+        mapType="satellite"
         initialRegion={{
           latitude: 40.1020,
           longitude: -88.2272,
           latitudeDelta: 0.0222,
           longitudeDelta: 0.0121,
+          }}
+        onMapReady={() => {
+          console.log('Map ready');
         }}
         onLongPress={handleLongPress}
       >
