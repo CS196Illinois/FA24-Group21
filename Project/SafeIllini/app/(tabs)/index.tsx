@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
+import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback, Platform } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { database } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
@@ -7,6 +7,18 @@ import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
 
 // using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
+/**
+* @typedef {Object} Incident
+* @property {string} id - The unique identifier for the incident.
+* @property {string} type - The type of the incident.
+* @property {string} severity - The severity level of the incident.
+* @property {string} description - A description of the incident.
+* @property {Object} location - The location of the incident.
+* @property {number} location.latitude - The latitude of the incident location.
+* @property {number} location.longitude - The longitude of the incident location.
+* @property {number} timestamp - The timestamp of when the incident occurred.
+* @property {Object} [photos] - An object containing photos related to the incident.
+**/
 interface Incident {
   id: string;
   type: string;
@@ -17,80 +29,88 @@ interface Incident {
   photos?: { [key: string]: string };
 }
 
-const dummyIncidents: Incident[] = [
-  {
-    id: "1",
-    type: "sexual_harassment",
-    severity: "high",
-    location: {
-      latitude: 40.1020, // Main Quad
-      longitude: -88.2272
-    },
-    timestamp: Date.now(),
-    description: "Incident near Main Quad"
-  },
-  {
-    id: "2",
-    type: "drunk_driving",
-    severity: "moderate",
-    location: {
-      latitude: 40.1089, // Illini Union
-      longitude: -88.2272
-    },
-    timestamp: Date.now(),
-    description: "Incident near Union"
-  },
-  {
-    id: "3",
-    type: "theft",
-    severity: "low",
-    location: {
-      latitude: 40.1164, // Green Street
-      longitude: -88.2434
-    },
-    timestamp: Date.now(),
-    description: "Incident on Green Street"
-  },
-  {
-    id: "4",
-    type: "assault",
-    severity: "high",
-    location: {
-      latitude: 40.105487, // West of Campus
-      longitude: -88.2439389
-    },
-    timestamp: Date.now(),
-    description: "Incident slightly west of campus"
-  }
-];
+// sample incident data for testing purposes
+// const dummyIncidents: Incident[] = [
+//   {
+//     id: "1",
+//     type: "sexual_harassment",
+//     severity: "high",
+//     location: {
+//       latitude: 40.1020, // Main Quad
+//       longitude: -88.2272
+//     },
+//     timestamp: Date.now(),
+//     description: "Incident near Main Quad"
+//   },
+//   {
+//     id: "2",
+//     type: "drunk_driving",
+//     severity: "moderate",
+//     location: {
+//       latitude: 40.1089, // Illini Union
+//       longitude: -88.2272
+//     },
+//     timestamp: Date.now(),
+//     description: "Incident near Union"
+//   },
+//   {
+//     id: "3",
+//     type: "theft",
+//     severity: "low",
+//     location: {
+//       latitude: 40.1164, // Green Street
+//       longitude: -88.2434
+//     },
+//     timestamp: Date.now(),
+//     description: "Incident on Green Street"
+//   },
+//   {
+//     id: "4",
+//     type: "assault",
+//     severity: "high",
+//     location: {
+//       latitude: 40.105487, // West of Campus
+//       longitude: -88.2439389
+//     },
+//     timestamp: Date.now(),
+//     description: "Incident slightly west of campus"
+//   }
+// ];
+
+
 
 export default function Home() {
-  const [selectedIncidentType, setSelectedIncidentType] = useState("all");
+  // state management for incident type filter and incidents list
+  // track the currently selected incident type filter
+  const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
+  // state to store all incidents from the database
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  
+  // effect hook to fetch and listen for real-time updates from Firebase
   useEffect(() => {
+    // creating reference to the incidents node in Firebase
     const incidentsRef = ref(database, 'incidents');
+    // Setting up real-time listener that updates when data changes
     // onValue function returns a func that when called, stops listening for updates.
-    // We call it "unsubscribe" because it:
-    // Terminates the subscription to Firebase updates and Removes the listener
+    // We just named it "unsubscribe" because it terminates the subscription to Firebase updates and Removes the listener
     const unsubscribe = onValue(incidentsRef, (snapshot) => {  
       const data = snapshot.val();
-      if (data) {
+      if (data) { // check if data is available
         const incidentsData: Incident[] = [];
+        // convert Firebase snapshot to array of incidents
         snapshot.forEach((childSnapshot) => {
           incidentsData.push({
-            id: childSnapshot.key,
-            ...childSnapshot.val()
+            id: childSnapshot.key, // extract the unique Firebase key as the incident ID
+            ...childSnapshot.val() // spread operator to merge all other incident data
           });
         });
-        setIncidents(incidentsData);
+        setIncidents(incidentsData); // update the incidents state with the fetched data
         console.log("Incidents data:", incidentsData);
       } else {
         console.log("No data available");
-        setIncidents([]);
+        setIncidents([]); // clear the incidents state if no data is available
       }
     });
-
+    // cleanup function to remove listener when component unmounts
     return () => unsubscribe()
   }, []);
 
@@ -99,17 +119,18 @@ export default function Home() {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     // https://docs.expo.dev/router/advanced/nesting-navigators/#navigate-to-a-screen-in-a-nested-navigator
     // since we're using expo router, we need to handle navigation differently
-    // we dont' define navigation types. instead, we can just use router.push() to send info from one screen to another
+    // we don't define navigation types. instead, we can just use router.push() to send info from one screen to another
     // the params AKA data we pass will be avail in the AddIncident screen through useLocalSearchParams()
     router.push({
-      pathname: "/AddIncident",
-      params: {
+      pathname: "/AddIncident", // navigate to the AddIncident screen
+      params: { // pass latitude and longitude to AddIncident screen
         latitude,
         longitude,
       }
     });
   };
 
+  // initiate emergency call to campus police
   const callCampusPolice = () => {
     const campusPoliceNumber = "6308910198";
     Linking.openURL(`tel:${campusPoliceNumber}`)
@@ -118,7 +139,7 @@ export default function Home() {
         Alert.alert("Error", "Unable to initiate the call. Please try again.");
       });
   };
-
+ // determine marker color based on incident type
   const getPinColor = (incidentType: string) => {
     switch (incidentType) {
       case "sexual_harassment": return "red";
@@ -137,6 +158,7 @@ export default function Home() {
           onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
           style={styles.picker}
         >
+          {/* Picker options for different incident types */}
           <Picker.Item label="All Incidents" value="all" />
           <Picker.Item label="Sexual Harassment" value="sexual_harassment" />
           <Picker.Item label="Drunk Driving" value="drunk_driving" />
@@ -144,6 +166,7 @@ export default function Home() {
           <Picker.Item label="Assault" value="assault" />
         </Picker>
       </View>
+       {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
       <MapView
         style={styles.map}
         provider="google"
@@ -151,7 +174,7 @@ export default function Home() {
         initialRegion={{
           latitude: 40.1020,
           longitude: -88.2272,
-          latitudeDelta: 0.0222,
+          latitudeDelta: 0.0222, // Zoom Level for the map
           longitudeDelta: 0.0121,
         }}
         onMapReady={() => {
@@ -159,17 +182,24 @@ export default function Home() {
 				}}
         onLongPress={handleLongPress}
       >
+        {/* Filter and display incident markers on map */}
         {incidents
+          // Filter the incidents array based on selected type
+          // First part of the OR condition: Show all incidents if "all" is selected 
+          // Second part of the OR condition: Only show the ones matching the selected type
           .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
+          // Map through the filtered incidents array and create a Marker component for each incident
+          // For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/marker.md
           .map((incident) => (
             <Marker
-              key={incident.id}
-              coordinate={{
+              key={incident.id} // React requires unique key for list item
+              coordinate={{ // // Set marker position on map
                 latitude: incident.location.latitude,
                 longitude: incident.location.longitude,
               }}
-              pinColor={getPinColor(incident.type)}
+              pinColor={getPinColor(incident.type)} // Set pin color based on incident type
               title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+                // Show description if available or show timestamp
               description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
               // pinColor="red"
               // title="Test Marker"
@@ -187,16 +217,17 @@ export default function Home() {
   );
 }
 
+// Styles for component layout and appearance
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1, // Take up all available space
   },
   pickerContainer: {
-    position: 'absolute',
+    position: 'absolute', // Float above map
     top: 20,
     left: 0,
     right: 0,
-    zIndex: 1,
+    zIndex: 1, // Ensure picker appears above map
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     paddingHorizontal: 20,
   },
@@ -204,7 +235,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   map: {
-    flex: 1,
+    flex: 1, // Take up all container space
     width: '100%',
     height: '100%',
   },
@@ -216,8 +247,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 30,
-    elevation: 5,
-    shadowColor: '#000',
+    elevation: 5, // Android shadow effect
+    shadowColor: '#000',  // iOS shadow effect
     shadowOffset: {
       width: 0,
       height: 2,
@@ -241,16 +272,7 @@ const styles = StyleSheet.create({
  * @component
  * @returns {JSX.Element} The rendered component.
  * 
- * @typedef {Object} Incident
- * @property {string} id - The unique identifier for the incident.
- * @property {string} type - The type of the incident.
- * @property {string} severity - The severity level of the incident.
- * @property {string} description - A description of the incident.
- * @property {Object} location - The location of the incident.
- * @property {number} location.latitude - The latitude of the incident location.
- * @property {number} location.longitude - The longitude of the incident location.
- * @property {number} timestamp - The timestamp of when the incident occurred.
- * @property {Object} [photos] - An object containing photos related to the incident.
+
  * 
  * @function fetchIncidents
  * Fetches incidents from the Firebase Realtime Database and updates the state.
