@@ -1,30 +1,93 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { database, auth } from "../../configs/firebaseConfig"
+import { database } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
 
-interface PinPosition {
-  latitude: number;
-  longitude: number;
+// using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
+interface Incident {
+  id: string;
   type: string;
-  timestamp: string;
+  severity: string;
+  location: { latitude: number; longitude: number };
+  timestamp: number;
+  description?: string;
+  photos?: { [key: string]: string };
 }
+
+const dummyIncidents: Incident[] = [
+  {
+    id: "1",
+    type: "sexual_harassment",
+    severity: "high",
+    location: {
+      latitude: 40.1020, // Main Quad
+      longitude: -88.2272
+    },
+    timestamp: Date.now(),
+    description: "Incident near Main Quad"
+  },
+  {
+    id: "2",
+    type: "drunk_driving",
+    severity: "moderate",
+    location: {
+      latitude: 40.1089, // Illini Union
+      longitude: -88.2272
+    },
+    timestamp: Date.now(),
+    description: "Incident near Union"
+  },
+  {
+    id: "3",
+    type: "theft",
+    severity: "low",
+    location: {
+      latitude: 40.1164, // Green Street
+      longitude: -88.2434
+    },
+    timestamp: Date.now(),
+    description: "Incident on Green Street"
+  }
+];
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState("all");
-  const [pinPosition, setPinPosition] = useState<PinPosition | null>(null);
+  // const [incidents, setIncidents] = useState<Incident[]>([]);
+  
+  // useEffect(() => {
+  //   const incidentsRef = ref(database, 'incidents');
+  //   // onValue function returns a func that when called, stops listening for updates.
+  //   // We call it "unsubscribe" because it:
+  //   // Terminates the subscription to Firebase updates and Removes the listener
+  //   const unsubscribe = onValue(incidentsRef, (snapshot) => {  
+  //     const data = snapshot.val();
+  //     if (data) {
+  //       const incidentsData = Object.entries(data).map(([key, value]: [string, any]) => ({
+  //         id: key,
+  //         type: value.type,
+  //         severity: value.severity,
+  //         location: value.location,
+  //         timestamp: value.timestamp,
+  //         description: value.description,
+  //         photos: value.photos
+  //       }));
+  //       setIncidents(incidentsData);
+  //       console.log("Incidents data:", incidentsData);
+  //     } else {
+  //       console.log("No data available");
+  //       setIncidents([]);
+  //     }
+  //   });
+
+  //   return () => unsubscribe()
+  // }, []);
+
   const handleLongPress = (event: any) => {
     // const { locationX, locationY } = event.nativeEvent;
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    setPinPosition({ 
-      latitude, 
-      longitude, 
-      type: selectedIncidentType,
-      timestamp: new Date().toISOString()
-    });
     // https://docs.expo.dev/router/advanced/nesting-navigators/#navigate-to-a-screen-in-a-nested-navigator
     // since we're using expo router, we need to handle navigation differently
     // we dont' define navigation types. instead, we can just use router.push() to send info from one screen to another
@@ -47,7 +110,7 @@ export default function Home() {
       });
   };
 
-  const getPinColor = (incidentType: any) => {
+  const getPinColor = (incidentType: string) => {
     switch (incidentType) {
       case "sexual_harassment": return "red";
       case "drunk_driving": return "orange";
@@ -65,36 +128,63 @@ export default function Home() {
           onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
           style={styles.picker}
         >
-          <Picker.Item label="Incident Types" value="all" />
+          <Picker.Item label="All Incidents" value="all" />
           <Picker.Item label="Sexual Harassment" value="sexual_harassment" />
           <Picker.Item label="Drunk Driving" value="drunk_driving" />
           <Picker.Item label="Theft" value="theft" />
           <Picker.Item label="Assault" value="assault" />
         </Picker>
       </View>
-
       <MapView
         style={styles.map}
+        provider="google"
+        mapType="satellite"
         initialRegion={{
-          latitude: 40.1020, // UIUC Main Quad coordinates
+          latitude: 40.1020,
+          longitude: -88.2272,
+          latitudeDelta: 0.0222,
+          longitudeDelta: 0.0121,
+        }}
+        onMapReady={() => {
+					console.log('Map ready');
+				}}
+        onLongPress={handleLongPress}
+      >
+        <Marker
+          coordinate={{
+            latitude: 40.1020,
+            longitude: -88.2272,
+          }}
+        />
+      </MapView>
+      {/* <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 40.1020,
           longitude: -88.2272,
           latitudeDelta: 0.0222,
           longitudeDelta: 0.0121,
         }}
         onLongPress={handleLongPress}
       >
-        {pinPosition && (
-          <Marker
-            coordinate={{
-              latitude: pinPosition.latitude,
-              longitude: pinPosition.longitude
-            }}
-            pinColor={getPinColor(pinPosition.type)}
-            title={selectedIncidentType.replace('_', ' ').toUpperCase()}
-            description={`Reported at ${new Date(pinPosition.timestamp).toLocaleString()}`}
-          />
-        )}
-      </MapView>
+        {dummyIncidents
+          .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
+          .map((incident) => (
+            <Marker
+              key={incident.id}
+              coordinate={{
+                latitude: 40.1020,
+                longitude: -88.2272,
+              }}
+              title="Test Marker"
+              description="This is a test marker"
+              pinColor="red"
+              // pinColor={getPinColor(incident.type)}
+              // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+              // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+            />
+          ))}
+      </MapView> */}
 
       <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
         <Text style={styles.sosButtonText}>SOS</Text>
