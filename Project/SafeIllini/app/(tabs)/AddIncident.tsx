@@ -10,14 +10,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from "expo-image";
 import { useLocalSearchParams } from 'expo-router';
 
+interface LocationState {
+    latitude: number | undefined;
+    longitude: number | undefined;
+    timestamp: number | undefined;
+  }
+
+type IncidentType = 'sexual_harassment' | 'drunk_driving' | 'assault' | 'theft' | undefined;
 export default function AddIncident() {
     const params = useLocalSearchParams();
-    const { latitude, longitude } = params;
-    const [latitude, setLatitude] = useState<number | undefined>(undefined);
-    const [longitude, setLongitude] = useState<number | undefined>(undefined);
-    const [description, setDescription] = useState<string | undefined>(undefined);
-    const [timestamp, setTimestamp] = useState<number | undefined>(undefined);
-    const date = new Date();
+    const [location, setLocation] = useState<LocationState>({
+        latitude: Number(params.latitude) || undefined,
+        longitude: Number(params.longitude) || undefined,
+        timestamp: undefined
+    });
+    const [description, setDescription] = useState<string>('');
+    const [date, setDate] = useState<Date>(new Date());
     const [type, setType] = useState<string | undefined>(undefined);
     const [photos, setPhotos] = useState<string[]>([]);
     const [severity, setSeverity] = useState<string | undefined>('Choose Severity');
