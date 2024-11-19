@@ -156,8 +156,8 @@ export default function Home() {
             <Marker
               key={incident.id}
               coordinate={{
-                latitude: 41.1020,
-                longitude: -88.2272,
+                latitude: incident.location.latitude,
+                longitude: incident.location.longitude,
               }}
               title="Test Marker"
               description="This is a test marker"
