@@ -8,8 +8,11 @@ import { ref, push, set, update, child } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from "expo-image";
+import { useLocalSearchParams } from 'expo-router';
 
 export default function AddIncident() {
+    const params = useLocalSearchParams();
+    const { latitude, longitude } = params;
     const [latitude, setLatitude] = useState<number | undefined>(undefined);
     const [longitude, setLongitude] = useState<number | undefined>(undefined);
     const [description, setDescription] = useState<string | undefined>(undefined);
@@ -146,7 +149,6 @@ export default function AddIncident() {
                 <Button label="Submit Incident" onPress={addIncident} />
         </GestureHandlerRootView>
     );
-}
 
 const styles = StyleSheet.create({
     screenContainer: {
