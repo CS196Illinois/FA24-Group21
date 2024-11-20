@@ -166,8 +166,7 @@ export default function AddIncident() {
     <GestureHandlerRootView>
       <View style={styles.genericContainer}>
         <Text style={styles.textInput}>
-          Latitude: {location.latitude?.toFixed(6)} {'\n'}
-          Longitude: {location.longitude?.toFixed(6)}
+          Latitude: {location.latitude?.toFixed(6)} Longitude: {location.longitude?.toFixed(6)}
         </Text>
       </View>
       <Button label="Update Location:" onPress={loadLocation} />
@@ -180,9 +179,9 @@ export default function AddIncident() {
           ))}
         </Picker>
       </View>
-      <View style={styles.genericContainer}>
+      {/* <View style={styles.genericContainer}>
         <Image source="https://drive.google.com/file/d/1O4CeHSwUJk0i6HKVlsac3PxodVhONePg/view?usp=sharing" />
-      </View>
+      </View> */}
       <View style={styles.pickerContainer}>
         <Picker style={styles.pickerDropDown}
           selectedValue={severity}
