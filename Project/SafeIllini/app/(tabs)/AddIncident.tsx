@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, Platform } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "../../components/Button";
 import SubmitButton from "../../components/SubmitButton";
@@ -8,12 +8,12 @@ import { database } from "../../configs/firebaseConfig"
 import { ref, push, set, update, child } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from "expo-image";
+import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams } from 'expo-router';
 
 export default function AddIncident() {
-    const params = useLocalSearchParams();
-    const { latitude, longitude } = params;
+    // const params = useLocalSearchParams();
+    // const { latitude, longitude } = params;
     const [latitude, setLatitude] = useState<number | undefined>(undefined);
     const [longitude, setLongitude] = useState<number | undefined>(undefined);
     const [description, setDescription] = useState<string | undefined>(undefined);
@@ -68,6 +68,30 @@ export default function AddIncident() {
             alert('No images selected');
         }
     };
+
+    const takeImageAsync = async () => {
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsMultipleSelection: true,
+            quality: 1
+        })
+        if (!result.canceled) {
+            saveImage(result.assets[0].uri);
+        } else {
+            alert('No image taken');
+        }
+    }
+
+    const saveImage = async (uri: string) => {
+        try {
+          const { status } = await MediaLibrary.requestPermissionsAsync();
+          if (status === "granted") {
+            await MediaLibrary.saveToLibraryAsync(uri);
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
 
     const addIncident = () => {
         if (timestamp != undefined && latitude != undefined && longitude != undefined && type != undefined && severity != undefined) {
@@ -155,8 +179,9 @@ export default function AddIncident() {
                 >
                 </TextInput>
             </View>
-            <View style={{justifyContent: 'center', marginLeft: '40%'}}>
+            <View style={{justifyContent: 'center', flexDirection: 'row', width: '100%', alignSelf: 'center' }}>
                 <Button label="Submit Photos" onPress={pickImageAsync} />
+                <Button label="Take Picture" onPress={takeImageAsync} />
             </View>
             <SubmitButton label="Submit Incident" onPress={addIncident} />
         </GestureHandlerRootView>
