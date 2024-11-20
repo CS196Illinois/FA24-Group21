@@ -106,7 +106,7 @@ export default function Home() {
           });
         });
         setIncidents(incidentsData); // update the incidents state with the fetched data
-        console.log("Incidents data:", incidentsData);
+        // console.log("Incidents data:", incidentsData);
       } else {
         console.log("No data available");
         setIncidents([]); // clear the incidents state if no data is available

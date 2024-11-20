@@ -22,6 +22,7 @@ interface LocationState {
 
 export default function AddIncident() {
   const params = useLocalSearchParams();
+  // console.log("params: ", params);
   const [location, setLocation] = useState<LocationState>({
     // conditional (ternary) operator to set default location values
     // if params.latitude is defined, use it, otherwise use undefined
@@ -29,20 +30,29 @@ export default function AddIncident() {
     longitude: params.longitude ? Number(params.longitude) : undefined,
     timestamp: Date.now()
   });
+  // console.log("location: ", location);
   const [description, setDescription] = useState<string>('');
   const [date, setDate] = useState<Date>(new Date());
   const [type, setType] = useState<IncidentType>('other');
   const [photos, setPhotos] = useState<string[]>([]);
   const [severity, setSeverity] = useState<SeverityLevel>('low');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
 
   // useEffect hook to request location permissions on mount,
   // and update location state if user passes in any coords from the Home Screen through the LongPress
   useEffect(() => {
+    // console.log("usEffect triggered");
     if (!params.latitude || !params.longitude) {
       requestLocationPermission();
+    } else {
+      setLocation({
+        latitude: Number(params.latitude),
+        longitude: Number(params.longitude),
+        timestamp: Date.now()
+      });
     }
-  }, []);
+  }, [params.latitude, params.longitude]);
 
   // adding a new function to requestLocationPermission only if the user didn't pass in any coords
   const requestLocationPermission = async () => {
