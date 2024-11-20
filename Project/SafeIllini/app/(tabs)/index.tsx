@@ -1,5 +1,6 @@
+/* eslint-disable import/no-unresolved */
 import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback, Platform } from "react-native";
+import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { database } from "../../configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
@@ -93,7 +94,7 @@ export default function Home() {
     // Setting up real-time listener that updates when data changes
     // onValue function returns a func that when called, stops listening for updates.
     // We just named it "unsubscribe" because it terminates the subscription to Firebase updates and Removes the listener
-    const unsubscribe = onValue(incidentsRef, (snapshot) => {  
+    const unsubscribe = onValue(incidentsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) { // check if data is available
         const incidentsData: Incident[] = [];
@@ -140,19 +141,19 @@ export default function Home() {
         Alert.alert("Error", "Unable to initiate the call. Please try again.");
       });
   };
- // determine marker color based on incident type
- const getPinColor = (incidentType: IncidentType) => {
-  return PIN_COLORS[incidentType] || 'black';
-};
-// const getPinColor = (incidentType: string) => {
-//   switch (incidentType) {
-//     case "sexual_harassment": return "red";
-//     case "drunk_driving": return "orange";
-//     case "theft": return "yellow";
-//     case "assault": return "blue";
-//     default: return "green";
-//   }
-// };
+  // determine marker color based on incident type
+  const getPinColor = (incidentType: IncidentType) => {
+    return PIN_COLORS[incidentType] || 'black';
+  };
+  // const getPinColor = (incidentType: string) => {
+  //   switch (incidentType) {
+  //     case "sexual_harassment": return "red";
+  //     case "drunk_driving": return "orange";
+  //     case "theft": return "yellow";
+  //     case "assault": return "blue";
+  //     default: return "green";
+  //   }
+  // };
 
   return (
     <View style={styles.container}>
@@ -169,7 +170,7 @@ export default function Home() {
           ))}
         </Picker>
       </View>
-       {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
+      {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
       <MapView
         style={styles.map}
         provider="google"
@@ -182,7 +183,7 @@ export default function Home() {
         }}
         onMapReady={() => {
           console.log('Map ready');
-				}}
+        }}
         onLongPress={handleLongPress}
       >
         {/* Filter and display incident markers on map */}
@@ -202,11 +203,11 @@ export default function Home() {
               }}
               pinColor={getPinColor(incident.type)} // Set pin color based on incident type
               title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
-                // Show description if available or show timestamp
+              // Show description if available or show timestamp
               description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
-              // pinColor="red"
-              // title="Test Marker"
-              // description="This is a test marker"
+            // pinColor="red"
+            // title="Test Marker"
+            // description="This is a test marker"
             />
           )
           )
@@ -271,17 +272,17 @@ const styles = StyleSheet.create({
 /**
  * code below is for the `Index` component which fetches and displays a list of incidents from our database
  * in a scrollable view.
- * 
+ *
  * @component
  * @returns {JSX.Element} The rendered component.
- * 
+ *
 
- * 
+ *
  * @function fetchIncidents
  * Fetches incidents from the Firebase Realtime Database and updates the state.
- * 
+ *
  * @throws Will throw an error if the data fetching fails.
- * 
+ *
  */
 
 // defines the structure/type of an incident object so that typescript knows the structure of the object
