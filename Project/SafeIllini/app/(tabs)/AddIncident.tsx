@@ -161,7 +161,7 @@ export default function AddIncident() {
             <SubmitButton label="Submit Incident" onPress={addIncident} />
         </GestureHandlerRootView>
     );
-
+}
 const styles = StyleSheet.create({
     textContainer: {
         backgroundColor: "000000",
