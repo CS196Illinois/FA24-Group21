@@ -6,7 +6,7 @@ type Props = {
     onPress?: () => void;
 };
 
-export default function Button({ label, onPress }: Props) {
+export default function SubmitButton({ label, onPress }: Props) {
     return (
         <View style={styles.buttonContainer}>
             <Pressable style={styles.button} onPress={onPress}>
@@ -18,21 +18,20 @@ export default function Button({ label, onPress }: Props) {
 
 const styles = StyleSheet.create({
     buttonContainer: {
-        height: 55,
-        width: '90%',
-        justifyContent: 'center',
-        padding: 3,
+        height: 67,
+        width: '100%',
+        padding: 2,
         borderRadius: 10,
     },
     button: {
         backgroundColor: "#000099",
-        alignItems: "center",
         borderRadius: 10,
         width: '100%',
-        height: '100%',
-        justifyContent: 'center'
+        height: 130,
+        justifyContent: 'center',
     },
     buttonLabel: {
-        color: "#FFFFFF"
+        color: "#FFFFFF",
+        alignSelf: 'center'
     }
 });

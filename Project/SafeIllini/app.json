@@ -13,13 +13,17 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "newArchEnabled": false,
+      "bundleIdentifier": "com.anonymous.SafeIllini"
     },
     "android": {
+      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.SafeIllini"
     },
     "web": {
       "bundler": "metro",
@@ -28,7 +32,18 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false
+          },
+          "ios": {
+            "newArchEnabled": false
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
