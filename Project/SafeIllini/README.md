@@ -4,16 +4,19 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
-1. Install dependencies
+1. Install dependencies (Do these commands one by one)
 
    ```bash
-   npm ci
+   npm install expo@latest
+   npm install -g npm@10.9.0
+   npx expo-doctor@latest
+   npx expo prebuild --clean
    ```
 
 2. Start the app
 
    ```bash
-    npx expo start
+    npx expo start # add --tunnel if you're using a GitHub codespace
    ```
 
 In the output, you'll find options to open the app in a
