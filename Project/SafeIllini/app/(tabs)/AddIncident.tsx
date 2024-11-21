@@ -41,6 +41,7 @@ export default function AddIncident() {
 
   // useEffect hook to request location permissions on mount,
   // and update location state if user passes in any coords from the Home Screen through the LongPress
+  // will rerender screen whenever params.latitude or params.longitude change
   useEffect(() => {
     // console.log("usEffect triggered");
     if (!params.latitude || !params.longitude) {
