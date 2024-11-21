@@ -37,7 +37,7 @@ export default function AddIncident() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [severity, setSeverity] = useState<SeverityLevel>('low');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+
 
   // useEffect hook to request location permissions on mount,
   // and update location state if user passes in any coords from the Home Screen through the LongPress
@@ -45,7 +45,7 @@ export default function AddIncident() {
   useEffect(() => {
     // console.log("usEffect triggered");
     if (!params.latitude || !params.longitude) {
-      requestLocationPermission();
+      requestAndUpdateLocation();
     } else {
       setLocation({
         latitude: Number(params.latitude),
@@ -55,29 +55,36 @@ export default function AddIncident() {
     }
   }, [params.latitude, params.longitude]);
 
-  // adding a new function to requestLocationPermission only if the user didn't pass in any coords
-  const requestLocationPermission = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setErrorMsg('Location permissions denied');
-      console.log(errorMsg);
-    }
-    loadLocation();
-  };
-
-  const loadLocation = async () => {
-    // just adding try catch block to handle any errors
+  const requestAndUpdateLocation = async () => {
     try {
-      let location = await Location.getCurrentPositionAsync();
+      // first check if we already have permissions
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      // only request permissions if not already granted
+      if (existingStatus !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Location permissions denied');
+          console.log(errorMsg);
+          return false; // allows useEffect hook to run again after permissions are granted
+        }
+      }
+      // basically old loadLocation function
+      // get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High
+      });
+
       setLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         timestamp: location.timestamp
       });
-      setDate(new Date(location.timestamp));
+
+      return true; // necessary to return true because otherwise, the useEffect hook will not run again
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to load location');
+      Alert.alert('Error', 'Failed to access location');
+      return false;
     }
   }
 
@@ -180,7 +187,7 @@ export default function AddIncident() {
           Latitude: {location.latitude?.toFixed(6)} Longitude: {location.longitude?.toFixed(6)}
         </Text>
       </View>
-      <Button label="Update Location:" onPress={loadLocation} />
+      <Button label="Update Location:" onPress={requestAndUpdateLocation} />
       <View style={styles.pickerContainer}>
         <Picker style={styles.pickerDropDown}
           selectedValue={type}
