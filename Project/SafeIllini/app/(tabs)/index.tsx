@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { database } from "../../configs/firebaseConfig"
+import { database } from "@/configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
