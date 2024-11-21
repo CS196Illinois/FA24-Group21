@@ -4,6 +4,7 @@ import { Text, View, StyleSheet, Alert } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "../../components/Button";
 import SubmitButton from "../../components/SubmitButton";
+import ThumbnailView from "../../components/ThumbnailView";
 import * as Location from 'expo-location';
 import { database } from "../../configs/firebaseConfig"
 import { ref, push, set, update, child } from 'firebase/database';
@@ -77,7 +78,8 @@ export default function AddIncident() {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 1
+        quality: 1,
+        selectionLimit: 2
       })
       // only if result.cancelled is false and result.assets is not empty
       if (!result.canceled && result.assets.length > 0) {
@@ -95,6 +97,33 @@ export default function AddIncident() {
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to pick images');
+    }
+  };
+
+  const takeImageAsync = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1,
+      selectionLimit: 2
+    })
+    if (!result.canceled && result.assets.length > 0) {
+      const photoUris = result.assets.map(asset => asset.uri);
+      saveImage(result.assets[0].uri);
+      setPhotos(photoUris);
+    } else {
+      Alert.alert('No image taken');
+    }
+  }
+
+  const saveImage = async (uri: string) => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status === "granted") {
+        await MediaLibrary.saveToLibraryAsync(uri);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -154,13 +183,14 @@ export default function AddIncident() {
     }
   }
 
-  const addDescrption = () => {
-    alert(description + " added");
+  function toTwoDigits(num: number) {
+    return num.toString().padStart(2, '0');
   }
+
   // function to format date and time just to have cleaner code
   // don't have to use + operator to concatenate strings, it's more efficient to use template literals
   const formatDateTime = (date: Date): string => {
-    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    return `${toTwoDigits(date.getMonth() + 1)}/${toTwoDigits(date.getDate())}/${date.getFullYear()} ${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}:${toTwoDigits(date.getSeconds())}`;
   };
 
   return (
@@ -171,10 +201,11 @@ export default function AddIncident() {
         </Text>
       </View>
       <Button label="Update Location:" onPress={loadLocation} />
-      <View style={styles.pickerContainer}>
+      <View style={[styles.pickerContainer, { flexDirection: 'row' }]}>
         <Picker style={styles.pickerDropDown}
           selectedValue={type}
           onValueChange={(itemValue) => setType(itemValue)}>
+          <Picker.Item label="Choose Type" value={undefined} />
           {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
             <Picker.Item key={value} label={label} value={value} />
           ))}
@@ -183,7 +214,7 @@ export default function AddIncident() {
       {/* <View style={styles.genericContainer}>
         <Image source="https://drive.google.com/file/d/1O4CeHSwUJk0i6HKVlsac3PxodVhONePg/view?usp=sharing" />
       </View> */}
-      <View style={styles.pickerContainer}>
+      <View style={[styles.pickerContainer, { flexDirection: 'row' }]}>
         <Picker style={styles.pickerDropDown}
           selectedValue={severity}
           onValueChange={(itemValue) => setSeverity(itemValue)}>
@@ -218,7 +249,20 @@ export default function AddIncident() {
         >
         </TextInput>
       </View>
-      <Button label="Submit Photos" onPress={pickImageAsync} />
+      <View style={{ flexDirection: 'row', height: 100 }}>
+        <View style={{flexDirection: 'row', flex: 2, borderWidth: 1}}>
+          <View style={{flex: 1}}>
+            <ThumbnailView imgSource={encodeURIComponent(photos[0])}/>
+          </View>
+          <View style={{flex: 1}}>
+            <ThumbnailView imgSource={encodeURIComponent(photos[1])}/>
+          </View>
+        </View>
+        <View style={{ flex: 1, flexDirection: 'column', width: 50 }}>
+          <Button label="Take a Photo" onPress={takeImageAsync} />
+          <Button label="Submit Photos" onPress={pickImageAsync} />
+        </View>
+      </View>
       <Button label="Submit Incident" onPress={addIncident} />
     </GestureHandlerRootView>
   );
@@ -251,13 +295,16 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    width: '50%',
+    width: '90%',
+    height: 'auto',
     margin: 5,
     display: 'flex',
     alignItems: 'flex-end',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    alignSelf: 'center'
   },
   pickerDropDown: {
+    flex: 1,
     width: 180,
     borderWidth: 1,
   }

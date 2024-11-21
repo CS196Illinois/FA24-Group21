@@ -18,7 +18,7 @@ export default function Button({ label, onPress }: Props) {
 
 const styles = StyleSheet.create({
     buttonContainer: {
-        height: 55,
+        height: 50,
         width: '100%',
         justifyContent: 'center',
         padding: 3,
