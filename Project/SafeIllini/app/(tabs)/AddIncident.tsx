@@ -11,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from "expo-image";
 import { useLocalSearchParams } from 'expo-router';
 
-// Import the necessary types and constants from the shared types and constants folder
+// Import the necessary types and constants from the shared types and constants
 import { Incident, IncidentType, SeverityLevel } from '@/types/incidents';
 import { INCIDENT_TYPE_LABELS, SEVERITY_LEVEL_LABELS } from '@/constants/Incidents';
 
