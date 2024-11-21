@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Dimensions } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { BarChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 import { database } from '../../configs/firebaseConfig'; // Import the Firebase configuration
-import { ref, onValue, getDatabase } from 'firebase/database';
-import dayjs from 'dayjs';
+import { ref, onValue } from 'firebase/database';
+import { Dayjs } from 'dayjs';
+import { } from 'react-native';
 
 const StatisticsScreen = () => {
-  //const database = getDatabase();
+  const { width, height } = useWindowDimensions();
+  const chartWidth = width * 0.9; // 90% of screen width
+  const chartHeight = height * 0.3; // 30% of screen height
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedTime, setSelectedTime] = useState<string>('all');
@@ -26,7 +28,7 @@ const StatisticsScreen = () => {
     type: string;
     photos?: string[];
   }
-  
+
   // Update the data fetching logic
   useEffect(() => {
     const incidentsRef = ref(database, 'incidents');
@@ -51,40 +53,40 @@ const StatisticsScreen = () => {
         setIncidents([]);
       }
     });
-  
+
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     const now = Date.now();
-  
+
     const filtered = incidents.filter((incident) => {
       // Match severity
       const matchesSeverity =
         selectedSeverity === 'all' || incident.severity === selectedSeverity;
-  
-      // Match time (assuming 'timeFilters' provides duration in milliseconds)
-      
-      // Define the timeFilters object at the component level
-    const timeFilters: Record<string, number> = {
-      'all': Infinity,
-      'last 1 hour': 60 * 60 * 1000,
-      'last 24 hours': 24 * 60 * 60 * 1000,
-      'last 1 week': 7 * 24 * 60 * 60 * 1000,
-      'last 1 month': 30 * 24 * 60 * 60 * 1000
-    };
 
-// Update the time matching logic
-    const matchesTime = 
-      selectedTime === 'all' || 
-      (now - incident.timestamp <= timeFilters[selectedTime]);
-  
+      // Match time (assuming 'timeFilters' provides duration in milliseconds)
+
+      // Define the timeFilters object at the component level
+      const timeFilters: Record<string, number> = {
+        'all': Infinity,
+        'last 1 hour': 60 * 60 * 1000,
+        'last 24 hours': 24 * 60 * 60 * 1000,
+        'last 1 week': 7 * 24 * 60 * 60 * 1000,
+        'last 1 month': 30 * 24 * 60 * 60 * 1000
+      };
+
+      // Update the time matching logic
+      const matchesTime =
+        selectedTime === 'all' ||
+        (now - incident.timestamp <= timeFilters[selectedTime]);
+
       return matchesSeverity && matchesTime;
     });
-  
+
     setFilteredData(filtered);
   }, [incidents, selectedSeverity, selectedTime]);
-  
+
 
   const generateChartData = () => {
     const types = ['sexual_harassment', 'drunk_driving', 'theft'];
@@ -137,9 +139,10 @@ const StatisticsScreen = () => {
 
       <BarChart
         data={generateChartData()}
-        width={outerWidth - 20}
-        height={220}
+        width={chartWidth}
+        height={chartHeight}
         yAxisLabel=""
+        yAxisSuffix=""
         chartConfig={{
           backgroundColor: '#fff',
           backgroundGradientFrom: '#f8f8f8',
