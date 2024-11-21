@@ -173,7 +173,6 @@ export default function Home() {
       {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
       <MapView
         style={styles.map}
-        provider="google"
         mapType="satellite"
         initialRegion={{
           latitude: 40.1020,
