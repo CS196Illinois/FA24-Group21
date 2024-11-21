@@ -12,7 +12,7 @@ export default function ThumbnailView({ imgSource }: Props) {
 
 const styles = StyleSheet.create({
     image: {
-      width: 50,
-      height: 50,
+      width: 100,
+      height: 100,
     },
   });

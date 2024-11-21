@@ -101,7 +101,7 @@ export default function AddIncident() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 1,
-        selectionLimit: 2
+        selectionLimit: 5
       })
       // only if result.cancelled is false and result.assets is not empty
       if (!result.canceled && result.assets.length > 0) {
@@ -308,6 +308,16 @@ export default function AddIncident() {
             <Button
               label="Add Photos"
               onPress={pickImageAsync}
+            // style={addIncidentStyles.button}
+            />
+            <View style={addIncidentStyles.displayPhotos}>
+              {photos.map( source => (
+                <ThumbnailView imgSource={source} />
+              ) )}
+            </View>
+            <Button
+              label="Delete Photos"
+              onPress={() => setPhotos([])}
             // style={addIncidentStyles.button}
             />
             <Button
