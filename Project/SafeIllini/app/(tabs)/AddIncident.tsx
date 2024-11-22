@@ -249,10 +249,12 @@ export default function AddIncident() {
                 value={date}
                 mode='date'
                 is24Hour={true}
-                onChange={(event: any, newDate: Date) => {
-                  setDate(newDate);
-                  setShowDatePicker(false);
-                  setShowTimePicker(true);
+                onChange={(event: any, newDate?: Date) => {
+                  if (newDate) {
+                    setDate(newDate);
+                    setShowDatePicker(false);
+                    setShowTimePicker(true);
+                  }
                 }}
               />
             )}
@@ -262,9 +264,11 @@ export default function AddIncident() {
                 value={date}
                 mode='time'
                 is24Hour={true}
-                onChange={(event: any, newDate: Date) => {
-                  setDate(newDate);
-                  setShowTimePicker(false);
+                onChange={(event: any, newDate?: Date) => {
+                  if (newDate) {
+                    setDate(newDate);
+                    setShowTimePicker(false);
+                  }
                 }}
               />
             )}
