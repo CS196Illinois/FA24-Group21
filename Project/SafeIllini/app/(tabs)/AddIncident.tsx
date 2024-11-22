@@ -3,13 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "@/components/Button";
+import SubmitButton from "@/components/SubmitButton";
+import ThumbnailView from "@/components/ThumbnailView";
 import * as Location from 'expo-location';
 import { database } from "@/configs/firebaseConfig"
 import { ref, push, set, update, child } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from "expo-image";
+import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Import the necessary types and constants from the shared types and constants folder
 import { Incident, IncidentType, SeverityLevel } from '@/types/incidents';
@@ -42,6 +45,8 @@ export default function AddIncident() {
   const [severity, setSeverity] = useState<SeverityLevel>('low');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0); // used to trigger a re-render of the form
+  const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
 
   // useEffect hook to request location permissions on mount,
   // and update location state if user passes in any coords from the Home Screen through the LongPress
@@ -98,7 +103,8 @@ export default function AddIncident() {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 1
+        quality: 1,
+        selectionLimit: 5
       })
       // only if result.cancelled is false and result.assets is not empty
       if (!result.canceled && result.assets.length > 0) {
@@ -119,6 +125,33 @@ export default function AddIncident() {
     }
   };
 
+  const takeImageAsync = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1,
+      selectionLimit: 2
+    })
+    if (!result.canceled && result.assets.length > 0) {
+      const photoUris = result.assets.map(asset => asset.uri);
+      saveImage(result.assets[0].uri);
+      setPhotos(photoUris);
+    } else {
+      Alert.alert('No image taken');
+    }
+  }
+
+  const saveImage = async (uri: string) => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status === "granted") {
+        await MediaLibrary.saveToLibraryAsync(uri);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const addIncident = () => {
     // just adding a check to make sure all required fields are filled out
     // don't have to compare with undefined, null, or empty strings, just check if they are truthy
@@ -129,31 +162,6 @@ export default function AddIncident() {
     }
     try {
       const ourReference = push(ref(database, 'incidents'));
-      // changed to an optimized version of adding the incident data to database
-      // BEFORE: 
-      // Creates the base object first with set(), then conditionally updates it with additional fields using update()
-      // set(ourReference, {
-      //     location: {
-      //         longitude,
-      //         latitude
-      //     },
-      //     type,
-      //     severity,
-      //     timestamp
-      // });
-      // if (description != undefined && description.length > 0) {
-      //     update(ourReference, { description: description });
-      // }
-      // if (photos.length > 0) {
-      //     // update(ourReference, {description: description});
-      // }
-
-      // AFTER:
-      // Creates a complete object upfront using spread operators and conditional properties, then sets it all at once
-      // It automatically omits optional properties when they're not present because 
-      // the spread operator with the logical AND (...(description && { description })) would evaluate to an empty object spread if description is undefined
-      // - More efficient b/c it reduces two database operations to a single call 
-      // - and it creates the complete object structure before writing to the database
       const incidentData = {
         location: {
           longitude: location.longitude,
@@ -161,7 +169,7 @@ export default function AddIncident() {
         },
         type,
         severity,
-        timestamp: location.timestamp,
+        timestamp: date.getTime(),
         // below is shorthand for ...(description && { description: description }) "description" is the field name if included
         ...(description && { description }),
         // below is shorthand for ...(photos.length > 0 && { photos }) "photos" is the field name if included
@@ -177,6 +185,7 @@ export default function AddIncident() {
       });
       setType('other');
       setSeverity('low');
+      setDate(new Date());
       if (description) { setDescription('') };
       if (photos) { setPhotos([]) };
 
@@ -188,13 +197,14 @@ export default function AddIncident() {
     }
   }
 
-  const addDescrption = () => {
-    alert(description + " added");
+  function toTwoDigits(num: number) {
+    return num.toString().padStart(2, '0');
   }
+
   // function to format date and time just to have cleaner code
   // don't have to use + operator to concatenate strings, it's more efficient to use template literals
   const formatDateTime = (date: Date): string => {
-    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+    return `${toTwoDigits(date.getMonth() + 1)}/${toTwoDigits(date.getDate())}/${date.getFullYear()} ${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}`;
   };
 
   return (
@@ -227,17 +237,38 @@ export default function AddIncident() {
           <View style={addIncidentStyles.card}>
             <Text style={addIncidentStyles.label}>Time</Text>
             <View style={addIncidentStyles.locationDateContainer}>
-              <TextInput style={addIncidentStyles.dateTime}
-                editable
-                value={formatDateTime(date)}
-                keyboardType='numeric'
-                multiline
-                numberOfLines={1}
-                onChangeText={text => (alert("Time change function not implemented yet"))}
-              />
+              <Text style={addIncidentStyles.dateTime}>{formatDateTime(date)}</Text>
             </View>
+            <Button onPress={() => {
+              setDate(new Date(Date.now()))
+              setShowDatePicker(true);
+            }} label="Change Time" />
+            {showDatePicker && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode='date'
+                is24Hour={true}
+                onChange={(event: any, newDate: Date) => {
+                  setDate(newDate);
+                  setShowDatePicker(false);
+                  setShowTimePicker(true);
+                }}
+              />
+            )}
+            {showTimePicker && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode='time'
+                is24Hour={true}
+                onChange={(event: any, newDate: Date) => {
+                  setDate(newDate);
+                  setShowTimePicker(false);
+                }}
+              />
+            )}
           </View>
-
           <View style={addIncidentStyles.card}>
             <Text style={addIncidentStyles.label}>Incident Details</Text>
             <View style={addIncidentStyles.pickerContainer}>
@@ -279,6 +310,15 @@ export default function AddIncident() {
               onPress={pickImageAsync}
             // style={addIncidentStyles.button}
             />
+            {photos.length > 0 && (
+              <><View style={addIncidentStyles.displayPhotos}>
+                {photos.map(source => (
+                  <ThumbnailView imgSource={source} />
+                ))}
+              </View><Button
+                  label="Delete Photos"
+                  onPress={() => setPhotos([])} /></>
+            )}
             <Button
               label="Submit Incident"
               onPress={addIncident}
@@ -291,64 +331,3 @@ export default function AddIncident() {
     </GestureHandlerRootView>
   );
 }
-
-
-
-// Old viewport
-// <GestureHandlerRootView style={styles.container}>
-//   <View style={styles.genericContainer}>
-//     <Text style={styles.textInput}>
-//       Latitude: {location.latitude?.toFixed(6)} Longitude: {location.longitude?.toFixed(6)}
-//     </Text>
-//   </View>
-//   <Button label="Update Location:" onPress={requestAndUpdateLocation} />
-//   <View style={styles.pickerContainer}>
-//     <Picker style={styles.pickerDropDown}
-//       selectedValue={type}
-//       onValueChange={(itemValue) => setType(itemValue)}>
-//       {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
-//         <Picker.Item key={value} label={label} value={value} />
-//       ))}
-//     </Picker>
-//   </View>
-//   {/* <View style={styles.genericContainer}>
-//     <Image source="https://drive.google.com/file/d/1O4CeHSwUJk0i6HKVlsac3PxodVhONePg/view?usp=sharing" />
-//   </View> */}
-//   <View style={styles.pickerContainer}>
-//     <Picker style={styles.pickerDropDown}
-//       selectedValue={severity}
-//       onValueChange={(itemValue) => setSeverity(itemValue)}>
-//       <Picker.Item label="Choose Severity" value={undefined} />
-//       {SEVERITY_LEVEL_LABELS.map(({ label, value }) => (
-//         <Picker.Item key={value} label={label} value={value} />
-//       ))}
-//     </Picker>
-//   </View>
-//   <View style={styles.genericContainer}>
-//     <TextInput
-//       style={styles.textInput}
-//       multiline
-//       editable
-//       numberOfLines={1}
-//       onChangeText={text => (alert("Time change function not implemented yet"))}
-//       value={formatDateTime(date)}
-//       keyboardType="numeric"
-//     >
-//     </TextInput>
-//   </View>
-//   <View style={styles.descriptionContainer}>
-//     <TextInput
-//       defaultValue="Type Description Here..."
-//       selectTextOnFocus
-//       style={styles.textInput}
-//       multiline
-//       editable
-//       numberOfLines={1}
-//       onChangeText={text => setDescription(text)} // you can also just do setDescription directly because it's a direct state update and it will automatically pass the text parameter
-//       value={description}
-//     >
-//     </TextInput>
-//   </View>
-//   <Button label="Submit Photos" onPress={pickImageAsync} />
-//   <Button label="Submit Incident" onPress={addIncident} />
-// </GestureHandlerRootView>

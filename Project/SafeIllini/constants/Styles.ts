@@ -66,6 +66,16 @@ export const addIncidentStyles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: '#4CAF50'
+  },
+  displayPhotos: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    minHeight: 50,
+    padding: 'auto',
+    flexWrap: 'wrap'
   }
 })
 
