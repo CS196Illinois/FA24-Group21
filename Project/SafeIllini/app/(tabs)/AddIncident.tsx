@@ -12,6 +12,7 @@ import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Import the necessary types and constants from the shared types and constants folder
 import { Incident, IncidentType, SeverityLevel } from '@/types/incidents';
@@ -44,6 +45,7 @@ export default function AddIncident() {
   const [severity, setSeverity] = useState<SeverityLevel>('low');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0); // used to trigger a re-render of the form
+  const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 
   // useEffect hook to request location permissions on mount,
   // and update location state if user passes in any coords from the Home Screen through the LongPress
@@ -225,7 +227,7 @@ export default function AddIncident() {
   // function to format date and time just to have cleaner code
   // don't have to use + operator to concatenate strings, it's more efficient to use template literals
   const formatDateTime = (date: Date): string => {
-    return `${toTwoDigits(date.getMonth() + 1)}/${toTwoDigits(date.getDate())}/${date.getFullYear()} ${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}:${toTwoDigits(date.getSeconds())}`;
+    return `${toTwoDigits(date.getMonth() + 1)}/${toTwoDigits(date.getDate())}/${date.getFullYear()} ${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}`;
   };
 
   return (
@@ -258,17 +260,27 @@ export default function AddIncident() {
           <View style={addIncidentStyles.card}>
             <Text style={addIncidentStyles.label}>Time</Text>
             <View style={addIncidentStyles.locationDateContainer}>
-              <TextInput style={addIncidentStyles.dateTime}
-                editable
-                value={formatDateTime(date)}
-                keyboardType='numeric'
-                multiline
-                numberOfLines={1}
-                onChangeText={text => (alert("Time change function not implemented yet"))}
-              />
+              <Text style={addIncidentStyles.dateTime}>{formatDateTime(date)}</Text>
             </View>
-          </View>
+            <Button onPress={() => {
+              setShowTimePicker(!showTimePicker);
+            }} label="Change Time" />
+            {showTimePicker && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode="time"
 
+                is24Hour={true}
+                onChange={(event, newDate) => {
+                  setDate(newDate);
+                  setShowTimePicker(false);
+                }}
+              />
+            )
+
+            }
+          </View>
           <View style={addIncidentStyles.card}>
             <Text style={addIncidentStyles.label}>Incident Details</Text>
             <View style={addIncidentStyles.pickerContainer}>
@@ -310,16 +322,15 @@ export default function AddIncident() {
               onPress={pickImageAsync}
             // style={addIncidentStyles.button}
             />
-            <View style={addIncidentStyles.displayPhotos}>
-              {photos.map( source => (
-                <ThumbnailView imgSource={source} />
-              ) )}
-            </View>
-            <Button
-              label="Delete Photos"
-              onPress={() => setPhotos([])}
-            // style={addIncidentStyles.button}
-            />
+            {photos.length > 0 && (
+              <><View style={addIncidentStyles.displayPhotos}>
+                {photos.map(source => (
+                  <ThumbnailView imgSource={source} />
+                ))}
+              </View><Button
+                  label="Delete Photos"
+                  onPress={() => setPhotos([])} /></>
+            )}
             <Button
               label="Submit Incident"
               onPress={addIncident}
