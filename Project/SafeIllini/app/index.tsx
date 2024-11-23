@@ -7,18 +7,19 @@ import { Heatmap } from 'react-native-maps';
 import { red } from "react-native-reanimated/lib/typescript/reanimated2/Colors";
 import React, {useState, useEffect}  from "react";
 
-const getPointColor = (type: any) => {
+const getPointWeight = (type: any) => {
   switch (type) {
     case 'low':
-      return '#930808';
+      return 0.65;
     case 'medium':
-      return '#c80a0a';
+      return 0.8;
     case 'high':
-      return '#ff0000';
+      return 1;
     default:
-      return 'green';
+      return 0.6;
   }
 };
+
 
 interface Incident {
   id: string;
@@ -32,12 +33,6 @@ interface Incident {
 const db = ref(database);
 
 export default function Index() {
-  // const heatmapPoints = [
-  //   { latitude: 40.107, longitude: -88.23, weight: 1, type: 'high' }, 
-  //   { latitude: 40.103, longitude: -88.23, weight: 1, type: 'low' },
-  //   { latitude: 40.105, longitude: -88.23, weight: 1, type: 'medium' }
-  // ];
-
   const pointTypes = ['low', 'medium', 'high']; 
 
   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
@@ -63,7 +58,7 @@ export default function Index() {
         const points = incidentsData.map((incident) => ({
           latitude: incident.location.latitude,
           longitude: incident.location.longitude,
-          weight: 1, // or any logic to determine weight
+          weight: getPointWeight(incident.type),
           type: incident.severity
         }));
         setHeatmapPoints(points);
@@ -77,31 +72,16 @@ export default function Index() {
 
   useEffect(() => {
     fetchIncidents();
-    // // Transform incidents into heatmapPoints
-    // const points = incidents.map((incident) => ({
-    //   latitude: incident.location.latitude,
-    //   longitude: incident.location.longitude,
-    //   weight: 1, // or any logic to determine weight
-    //   type: incident.severity
-    // }));
-    // setHeatmapPoints(points);
   }, []);
-
-  // useEffect(() => {
-  //   // Transform incidents into heatmapPoints
-  //   const points = incidents.map((incident) => ({
-  //     latitude: incident.location.latitude,
-  //     longitude: incident.location.longitude,
-  //     weight: 1, // or any logic to determine weight
-  //     type: incident.severity
-  //   }));
-  //   setHeatmapPoints(points);
-  // }, [incidents]);
 
   return (
     <View style={styles.container}>
       <MapView
       style={styles.map}
+      mapType={"standard"}
+      userInterfaceStyle={'dark'}
+      showsUserLocation={true}
+      userLocationPriority={'high'}
       initialRegion={{
         latitude: 40.103,
         longitude: -88.23,
@@ -113,11 +93,12 @@ export default function Index() {
           <Heatmap
             key = {type}
             points={heatmapPoints.filter(point => point.type === type)}
-            radius={10}
-            opacity={1}
+            radius={50}
+            opacity={0.58}
             gradient={{
-              colors: [getPointColor(type)],
-              startPoints: [0.75],
+              colors:["navy", "blue", "green", "yellow", "red"],
+              startPoints: Platform.OS === 'ios' ? [0.07, 0.15, 0.25, 0.35, 0.5]: 
+              [0.1, 0.2, 0.3, 0.4, 0.5],
               colorMapSize: 256,
             }}
           />
