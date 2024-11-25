@@ -1,11 +1,10 @@
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet, View, Pressable, Button, Alert } from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
 import { ref, set, onValue, get, child } from 'firebase/database';
 import MapView from 'react-native-maps';
 import { Platform } from "react-native";
 import { Heatmap } from 'react-native-maps';
-import { red } from "react-native-reanimated/lib/typescript/reanimated2/Colors";
-import React, {useState, useEffect}  from "react";
+import React, {useState, useEffect, useRef, Component}  from "react";
 
 const getPointWeight = (type: any) => {
   switch (type) {
@@ -33,13 +32,13 @@ interface Incident {
 const db = ref(database);
 
 export default function Index() {
+  const mapRef=useRef(null);
   const pointTypes = ['low', 'medium', 'high']; 
 
   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
   const [heatmapPoints, setHeatmapPoints] = useState<
     { latitude: number; longitude: number; weight: number; type: string }[]
   >([]);
-  // I think the problem with the code is here because maybe "database" is not a valid thing :/ ?
   const fetchIncidents = async () => {
     try {
       const snapshot = await get(child(db, 'incidents'));
@@ -74,36 +73,55 @@ export default function Index() {
     fetchIncidents();
   }, []);
 
+    const campusCoords = {
+      latitude: 40.103,
+      longitude: -88.23,
+      latitudeDelta: 0.042,
+      longitudeDelta: 0.000000001,
+    };
+
+    const centerMap = () => {  
+      mapRef.current.animateToRegion(campusCoords, 1000);
+    };
+
   return (
     <View style={styles.container}>
       <MapView
+      ref={mapRef}
       style={styles.map}
+      //for the mapType, add a conditional thing where
+      //if the OS is ios, then make mapType={mutedStandard} because it look less ugly
+      //i need to learn UI design
       mapType={"standard"}
       userInterfaceStyle={'dark'}
       showsUserLocation={true}
       userLocationPriority={'high'}
-      initialRegion={{
-        latitude: 40.103,
-        longitude: -88.23,
-        latitudeDelta: 0.042,
-        longitudeDelta: 0.000000001,
-      }}
+      loadingEnabled={true}
+      loadingIndicatorColor={'#e66220'}
+      loadingBackgroundColor={'#091547'}
+      initialRegion={campusCoords}
     >
       {heatmapPoints.length > 0 && pointTypes.map((type) => (
           <Heatmap
             key = {type}
             points={heatmapPoints.filter(point => point.type === type)}
             radius={50}
-            opacity={0.58}
+            opacity={0.6}
             gradient={{
-              colors:["navy", "blue", "green", "yellow", "red"],
-              startPoints: Platform.OS === 'ios' ? [0.07, 0.15, 0.25, 0.35, 0.5]: 
-              [0.1, 0.2, 0.3, 0.4, 0.5],
+              colors:["black", "darkred", "yellow", "white"],
+              startPoints: Platform.OS === 'ios' ? [0.05, 0.11, 0.25, 0.45]: 
+              [0.1, 0.22, 0.5, 0.8],
               colorMapSize: 256,
             }}
           />
         ))}
       </MapView>
+      <Pressable 
+        style={styles.centerButton} 
+        onPress={() => centerMap()}
+        >
+        <Text style={styles.buttonText}>Re-Center To Whole Campus</Text>
+      </Pressable>
     </View>
   );
 }
@@ -115,5 +133,20 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '110%',
+  },
+  centerButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: '#e66220',
+    paddingVertical: 10,
+    paddingHorizontal: 17,
+    borderRadius: 8,
+    elevation: 3,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
