@@ -1,13 +1,17 @@
-import { Text, StyleSheet, View, Pressable, Button, Alert } from "react-native";
+import { Text, StyleSheet, View, Pressable} from "react-native";
 import { database, auth } from "../configs/firebaseConfig"
-import { ref, set, onValue, get, child } from 'firebase/database';
+import { ref, get, child } from 'firebase/database';
+import { Picker } from '@react-native-picker/picker';
 import MapView from 'react-native-maps';
 import { Platform } from "react-native";
 import { Heatmap } from 'react-native-maps';
-import React, {useState, useEffect, useRef, Component}  from "react";
 
-const getPointWeight = (type: any) => {
-  switch (type) {
+import React, {useState, useEffect, useRef}  from "react";
+
+//this is used to set the "weight" of each heatmap point depending on its severity (low, medium, high)
+//low severity is smallest, high severity is highest
+const getPointWeight = (severity: any) => {
+  switch (severity) {
     case 'low':
       return 0.65;
     case 'medium':
@@ -19,7 +23,7 @@ const getPointWeight = (type: any) => {
   }
 };
 
-
+//this is the interface of the things each indicident from the firebase database will return when we request
 interface Incident {
   id: string;
   type: string;
@@ -35,25 +39,40 @@ export default function Index() {
   const mapRef=useRef(null);
   const pointTypes = ['low', 'medium', 'high']; 
 
+  const [selectedSeverity, setSelectedSeverity] = useState('all');
+
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(null);
+  const [items, setItems] = useState([
+    {label: 'All Incidents', value: 'all'},
+    {label: 'Low Severity', value: 'low'},
+    {label: 'Medium Severity', value: 'medium'},
+    {label: 'High Severity', value: 'high'}
+  ]);
+
   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
   const [heatmapPoints, setHeatmapPoints] = useState<
     { latitude: number; longitude: number; weight: number; type: string }[]
   >([]);
+
   const fetchIncidents = async () => {
     try {
       const snapshot = await get(child(db, 'incidents'));
       if (snapshot.exists()) {
-        // we need to define the type of incidentsData as an array of objects with the above fields 
-        // bc typescript doesn't know the type of data in the array and we need to tell it
-        const incidentsData: Incident[] = []; 
+        let incidentsData: Incident[] = [];
         snapshot.forEach((childSnapshot) => {
           incidentsData.push({
             id: childSnapshot.key,
             ...childSnapshot.val()
           });
         });
+        
+        // Filter incidents based on selected severity
+        if (selectedSeverity !== 'all') {
+          incidentsData = incidentsData.filter(incident => incident.severity === selectedSeverity);
+        }
+        
         setIncidents(incidentsData);
-        console.log(incidentsData);
         const points = incidentsData.map((incident) => ({
           latitude: incident.location.latitude,
           longitude: incident.location.longitude,
@@ -71,7 +90,7 @@ export default function Index() {
 
   useEffect(() => {
     fetchIncidents();
-  }, []);
+  }, [selectedSeverity]);
 
     const campusCoords = {
       latitude: 40.103,
@@ -86,6 +105,18 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.dropdownContainer}>
+      <Picker
+          selectedValue={selectedSeverity}
+          onValueChange={(itemValue) => setSelectedSeverity(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="All Incidents" value="all" />
+          <Picker.Item label="Low Severity" value="low" />
+          <Picker.Item label="Medium Severity" value="medium" />
+          <Picker.Item label="High Severity" value="high" />
+        </Picker>
+      </View>
       <MapView
       ref={mapRef}
       style={styles.map}
@@ -116,10 +147,7 @@ export default function Index() {
           />
         ))}
       </MapView>
-      <Pressable 
-        style={styles.centerButton} 
-        onPress={() => centerMap()}
-        >
+      <Pressable style={styles.centerButton} onPress={() => centerMap()}>
         <Text style={styles.buttonText}>Re-Center To Whole Campus</Text>
       </Pressable>
     </View>
@@ -133,6 +161,7 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '110%',
+    zIndex: 1,
   },
   centerButton: {
     position: 'absolute',
@@ -143,10 +172,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 17,
     borderRadius: 8,
     elevation: 3,
+    zIndex: 2,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  dropdownContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 40,
+    right: 40,
+    zIndex: 2,
+    backgroundColor: 'white', // Add a solid background color
+    borderRadius: 8, // Add rounded corners
+    elevation: 14, // Add elevation for Android shadow
+    shadowColor: '#000', // Add shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+    backgroundColor: 'white', // Ensure the picker itself has a background
   },
 });
