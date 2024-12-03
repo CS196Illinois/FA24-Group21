@@ -18,8 +18,11 @@ export default function Home() {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null); // State to track the selected incident
   const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
   
+
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["25%", "50%"], []);
+
+  bottomSheetRef.current?.present();
 
   useEffect(() => {
     const incidentsRef = ref(database, "incidents");
@@ -130,7 +133,7 @@ export default function Home() {
               }}
               pinColor={getPinColor(incident.type)}
             
-              onPress={() => presentBottomSheet()} // Trigger modal on long press
+              onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
             />
           ))}
       </MapView>
