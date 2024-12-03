@@ -3,17 +3,21 @@ import React, { useState, useEffect, useRef } from "react";
 import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, Platform, Button } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Picker } from "@react-native-picker/picker";
-import { database } from "@/configs/firebaseConfig";
-// import { database, messaging } from "@/configs/firebaseConfig";
 import { ref, set, onValue } from 'firebase/database';
 // import { getToken } from 'firebase/messaging';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
-import { Incident, IncidentType } from '@/types/incidents';
-import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+
+import { database } from "@/configs/firebaseConfig";
+// import { database, messaging } from "@/configs/firebaseConfig";
+import { Incident, IncidentType } from '@/types/incidents';
+import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
+// importing our useNotifications hook to handle push notifications
+import { useNotifications } from '@/hooks/useNotifications';
+
 // using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
 /**
 * @typedef {Object} Incident
@@ -85,87 +89,81 @@ import Constants from 'expo-constants';
 //   }
 // ];
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Notifications.setNotificationHandler({
+//   handleNotification: async () => ({
+//     shouldShowAlert: true,
+//     shouldPlaySound: true,
+//     shouldSetBadge: false,
+//   }),
+// });
 
-async function sendPushNotification(expoPushToken: string) {
-  const message = {
-    to: expoPushToken,
-    sound: 'default',
-    title: 'Original Title',
-    body: 'And here is the body!',
-    data: { someData: 'goes here' },
-  };
+// async function sendPushNotification(expoPushToken: string) {
+//   const message = {
+//     to: expoPushToken,
+//     sound: 'default',
+//     title: 'Original Title',
+//     body: 'And here is the body!',
+//     data: { someData: 'goes here' },
+//   };
 
-  await fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'Accept-encoding': 'gzip, deflate',
-    },
-    body: JSON.stringify(message),
-  });
-}
+//   await fetch('https://exp.host/--/api/v2/push/send', {
+//     method: 'POST',
+//     headers: {
+//       Accept: 'application/json',
+//       'Content-Type': 'application/json',
+//       'Accept-encoding': 'gzip, deflate',
+//     },
+//     body: JSON.stringify(message),
+//   });
+// }
 
-function handleRegistrationError(errorMessage: string) {
-  alert(errorMessage);
-  throw new Error(errorMessage);
-}
+// function handleRegistrationError(errorMessage: string) {
+//   alert(errorMessage);
+//   throw new Error(errorMessage);
+// }
 
-async function registerForPushNotificationsAsync() {
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
-  }
+// async function registerForPushNotificationsAsync() {
+//   if (Platform.OS === 'android') {
+//     Notifications.setNotificationChannelAsync('default', {
+//       name: 'default',
+//       importance: Notifications.AndroidImportance.MAX,
+//       vibrationPattern: [0, 250, 250, 250],
+//       lightColor: '#FF231F7C',
+//     });
+//   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      handleRegistrationError('Permission not granted to get push token for push notification!');
-      return;
-    }
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-    if (!projectId) {
-      handleRegistrationError('Project ID not found');
-    }
-    try {
-      const pushTokenString = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log(pushTokenString);
-      return pushTokenString;
-    } catch (e: unknown) {
-      handleRegistrationError(`${e}`);
-    }
-  } else {
-    handleRegistrationError('Must use physical device for push notifications');
-  }
-}
+//   if (Device.isDevice) {
+//     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+//     let finalStatus = existingStatus;
+//     if (existingStatus !== 'granted') {
+//       const { status } = await Notifications.requestPermissionsAsync();
+//       finalStatus = status;
+//     }
+//     if (finalStatus !== 'granted') {
+//       handleRegistrationError('Permission not granted to get push token for push notification!');
+//       return;
+//     }
+//     const projectId =
+//       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+//     if (!projectId) {
+//       handleRegistrationError('Project ID not found');
+//     }
+//     try {
+//       const pushTokenString = (await Notifications.getExpoPushTokenAsync()).data;
+//       console.log(pushTokenString);
+//       return pushTokenString;
+//     } catch (e: unknown) {
+//       handleRegistrationError(`${e}`);
+//     }
+//   } else {
+//     handleRegistrationError('Must use physical device for push notifications');
+//   }
+// }
 
 
 export default function Home() {
   // notification system
-  const [expoPushToken, setExpoPushToken] = useState<string>('');
-  const [notification, setNotification] = useState<Notifications.Notification | undefined>(
-    undefined
-  );
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
-
+  const { expoPushToken, notification, sendPushNotification } = useNotifications();
 
   // state management for incident type filter and incidents list
   // track the currently selected incident type filter
@@ -205,31 +203,9 @@ export default function Home() {
         setIncidents([]); // clear the incidents state if no data is available
       }
     });
-
-    // Gets the push token and displays it in the UI, or in case of an error, displays the error message.
-    registerForPushNotificationsAsync()
-      .then(token => {
-        console.log("Push token:", token);
-        setExpoPushToken(token ?? '');
-      })
-      .catch((error: any) => setExpoPushToken(`${error}`));
-
-    // Listeners for notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log(response);
-    });
-
     // cleanup function to remove listeners when component unmounts
     return () => {
       unsubscribe();
-      notificationListener.current &&
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      responseListener.current &&
-        Notifications.removeNotificationSubscription(responseListener.current);
     }
   }, []);
 
