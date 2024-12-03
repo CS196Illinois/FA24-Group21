@@ -4,24 +4,29 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 
 // Code mostly from https://docs.expo.dev/push-notifications/push-notifications-setup/
+
+// Function to handle registration errors
 function handleRegistrationError(errorMessage: string) {
   alert(errorMessage);
   throw new Error(errorMessage);
 }
 
 class NotificationService {
+  // Register for push notifications according to documentation
   async registerForPushNotificationsAsync() {
+    // Android requires extra permissions on the manifest. This function sets up the channel for Android
     if (Platform.OS === 'android') {
       await this.setAndroidChannel();
     }
-
+    // Physical device is required for push notifications to work
     if (!Device.isDevice) {
       handleRegistrationError('Must use physical device for push notifications');
     }
 
+    // Request permissions to get the push token
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-
+    // If permissions are not granted, request permissions
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
@@ -39,6 +44,8 @@ class NotificationService {
     }
 
     try {
+      // getExpoPushTokenAsync fetches the push token from the Expo servers
+      // This token is necessary for sending notifications to the device
       const pushTokenString = (await Notifications.getExpoPushTokenAsync()).data;
       console.log(pushTokenString);
       return pushTokenString;
@@ -56,6 +63,7 @@ class NotificationService {
     });
   }
 
+  // temporary function to send a push notification using the Expo API
   async sendPushNotification(expoPushToken: string) {
     const message = {
       to: expoPushToken,

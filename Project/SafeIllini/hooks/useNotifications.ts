@@ -18,11 +18,16 @@ export const useNotifications = () => {
         }),
     });
 
-    // notification system
+    // Expo push token is a unique identifier that Expo generates for each app instance upon registration
     const [expoPushToken, setExpoPushToken] = useState<string>('');
+    // state to store the current notification
+    // this state will be updated whenever a new notification is received while the app is foregrounded
+    // this will allow the UI to be updated accordingly
+    // see: https://docs.expo.io/versions/latest/sdk/notifications/#notification-object-properties
     const [notification, setNotification] = useState<Notifications.Notification | undefined>(
         undefined
     );
+    // useRef is used to store the notification listener and response listener
     const notificationListener = useRef<Notifications.EventSubscription>();
     const responseListener = useRef<Notifications.EventSubscription>();
 
@@ -53,7 +58,7 @@ export const useNotifications = () => {
             response => console.log(response)
         );
     };
-
+    // Cleanup function to remove the notification listeners when the component is unmounted
     const cleanup = () => {
         notificationListener.current &&
             Notifications.removeNotificationSubscription(notificationListener.current);
@@ -61,6 +66,7 @@ export const useNotifications = () => {
             Notifications.removeNotificationSubscription(responseListener.current);
     };
 
+    // Return the expo push token, the current notification, and the sendPushNotification function
     return {
         expoPushToken,
         notification,

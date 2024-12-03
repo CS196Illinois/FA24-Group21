@@ -106,7 +106,7 @@ export default function Home() {
   //   // side effect code here
   // }, [dependencies]);
   // in our case, we want to fetch incidents from Firebase and listen for real-time updates when the component mounts
-  // additionally, we 
+  // additionally, we want to send notifications to the user whenever they are near a high risk incident that's been added in the past 12 hours
   useEffect(() => {
     // creating reference to the incidents node in Firebase
     const incidentsRef = ref(database, 'incidents');
