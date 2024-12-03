@@ -10,6 +10,7 @@ import { Incident, IncidentType } from "@/types/incidents";
 import { INCIDENT_TYPE_LABELS, PIN_COLORS } from "@/constants/Incidents";
 import { BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
@@ -79,6 +80,7 @@ export default function Home() {
         )}
       />
     </BottomSheetView>
+
   );
 
   const sheetRef = React.useRef(null);
@@ -86,6 +88,7 @@ export default function Home() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <BottomSheetModalProvider>
     <View style={styles.container}>
       <View style={styles.pickerContainer}>
         <Picker
@@ -170,6 +173,7 @@ export default function Home() {
         </View>
       </Modal>
     </View>
+    </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
