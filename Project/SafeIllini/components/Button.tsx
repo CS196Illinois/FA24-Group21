@@ -41,7 +41,6 @@ export default function Button({
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    width: '100%',
     height: 48,
     marginVertical: 8,
   },

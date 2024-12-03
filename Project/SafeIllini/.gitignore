@@ -11,6 +11,8 @@ npm-debug.*
 *.orig.*
 web-build/
 /workspaces/FA24-Group21/Project/SafeIllini/configs/firebaseConfig.js
+android/
+ios/
 
 # macOS
 .DS_Store
