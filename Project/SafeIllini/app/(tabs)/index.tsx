@@ -1,14 +1,19 @@
 /* eslint-disable import/no-unresolved */
-import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, Platform, Button } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Picker } from "@react-native-picker/picker";
-import { database } from "@/configs/firebaseConfig"
+import { database } from "@/configs/firebaseConfig";
+// import { database, messaging } from "@/configs/firebaseConfig";
 import { ref, set, onValue } from 'firebase/database';
+// import { getToken } from 'firebase/messaging';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
 import { Incident, IncidentType } from '@/types/incidents';
 import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 // using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
 /**
 * @typedef {Object} Incident
@@ -80,15 +85,102 @@ import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
 //   }
 // ];
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+async function sendPushNotification(expoPushToken: string) {
+  const message = {
+    to: expoPushToken,
+    sound: 'default',
+    title: 'Original Title',
+    body: 'And here is the body!',
+    data: { someData: 'goes here' },
+  };
+
+  await fetch('https://exp.host/--/api/v2/push/send', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'Accept-encoding': 'gzip, deflate',
+    },
+    body: JSON.stringify(message),
+  });
+}
+
+function handleRegistrationError(errorMessage: string) {
+  alert(errorMessage);
+  throw new Error(errorMessage);
+}
+
+async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      handleRegistrationError('Permission not granted to get push token for push notification!');
+      return;
+    }
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+    if (!projectId) {
+      handleRegistrationError('Project ID not found');
+    }
+    try {
+      const pushTokenString = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(pushTokenString);
+      return pushTokenString;
+    } catch (e: unknown) {
+      handleRegistrationError(`${e}`);
+    }
+  } else {
+    handleRegistrationError('Must use physical device for push notifications');
+  }
+}
 
 
 export default function Home() {
+  // notification system
+  const [expoPushToken, setExpoPushToken] = useState<string>('');
+  const [notification, setNotification] = useState<Notifications.Notification | undefined>(
+    undefined
+  );
+  const notificationListener = useRef<Notifications.EventSubscription>();
+  const responseListener = useRef<Notifications.EventSubscription>();
+
+
   // state management for incident type filter and incidents list
   // track the currently selected incident type filter
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
   // state to store all incidents from the database
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  // effect hook to fetch and listen for real-time updates from Firebase
+
+  // what does useEffect hook do?
+  // useEffect hook is used to run side effects, such as data fetching, subscriptions, or updating the DOM, after rendering a component.
+  // It takes in two arguments: a function that performs the side effect and an array of dependencies.
+  // useEffect(() => {
+  //   // side effect code here
+  // }, [dependencies]);
+  // in our case, we want to fetch incidents from Firebase and listen for real-time updates when the component mounts
+  // additionally, we 
   useEffect(() => {
     // creating reference to the incidents node in Firebase
     const incidentsRef = ref(database, 'incidents');
@@ -113,8 +205,32 @@ export default function Home() {
         setIncidents([]); // clear the incidents state if no data is available
       }
     });
-    // cleanup function to remove listener when component unmounts
-    return () => unsubscribe();
+
+    // Gets the push token and displays it in the UI, or in case of an error, displays the error message.
+    registerForPushNotificationsAsync()
+      .then(token => {
+        console.log("Push token:", token);
+        setExpoPushToken(token ?? '');
+      })
+      .catch((error: any) => setExpoPushToken(`${error}`));
+
+    // Listeners for notifications
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      setNotification(notification);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log(response);
+    });
+
+    // cleanup function to remove listeners when component unmounts
+    return () => {
+      unsubscribe();
+      notificationListener.current &&
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      responseListener.current &&
+        Notifications.removeNotificationSubscription(responseListener.current);
+    }
   }, []);
 
   const handleLongPress = (event: any) => {
@@ -158,66 +274,19 @@ export default function Home() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedIncidentType}
-            onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
-            style={styles.picker}
-          >
-            {/* Picker options for different incident types */}
-            <Picker.Item label="All Incidents" value="all" />
-            {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
-              <Picker.Item key={value} label={label} value={value} />
-            ))}
-          </Picker>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'space-around' }}>
+        <Text>Your Expo push token: {expoPushToken}</Text>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Text>Title: {notification && notification.request.content.title} </Text>
+          <Text>Body: {notification && notification.request.content.body}</Text>
+          <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
         </View>
-        {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
-        <MapView
-          style={styles.map}
-          mapType="satellite"
-          initialRegion={{
-            latitude: 40.1020,
-            longitude: -88.2272,
-            latitudeDelta: 0.0222, // Zoom Level for the map
-            longitudeDelta: 0.0121,
+        <Button
+          title="Press to Send Notification"
+          onPress={async () => {
+            await sendPushNotification(expoPushToken);
           }}
-          onMapReady={() => {
-            console.log('Map ready');
-          }}
-          onLongPress={handleLongPress}
-        >
-          {/* Filter and display incident markers on map */}
-          {incidents
-            // Filter the incidents array based on selected type
-            // First part of the OR condition: Show all incidents if "all" is selected 
-            // Second part of the OR condition: Only show the ones matching the selected type
-            .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
-            // Map through the filtered incidents array and create a Marker component for each incident
-            // For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/marker.md
-            .map((incident) => (
-              <Marker
-                key={incident.id} // React requires unique key for list item
-                coordinate={{ // // Set marker position on map
-                  latitude: incident.location.latitude,
-                  longitude: incident.location.longitude,
-                }}
-                pinColor={getPinColor(incident.type)} // Set pin color based on incident type
-                title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
-                // Show description if available or show timestamp
-                description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
-              // pinColor="red"
-              // title="Test Marker"
-              // description="This is a test marker"
-              />
-            )
-            )
-          }
-        </MapView>
-
-        <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
-          <Text style={styles.sosButtonText}>SOS</Text>
-        </TouchableOpacity>
+        />
       </View>
     </GestureHandlerRootView>
   );
