@@ -49,4 +49,15 @@
       "typedRoutes": true
     }
   }
+  // below is for push notifications
+  // only uncomment if you are using Expo Push Notifications
+  ,"extra": {
+    "router": {
+      "origin": false
+    },
+    "eas": {
+      "projectId": "196a178a-ecb8-4b14-a8dc-60d8b4392293"
+    }
+  },
+  "owner": "fa24-group21"
 }
