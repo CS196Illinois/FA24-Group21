@@ -176,9 +176,70 @@ export default function Home() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={styles.container}>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedIncidentType}
+            onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
+            style={styles.picker}
+          >
+            {/* Picker options for different incident types */}
+            <Picker.Item label="All Incidents" value="all" />
+            {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
+              <Picker.Item key={value} label={label} value={value} />
+            ))}
+          </Picker>
+        </View>
+        {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
+        <MapView
+          style={styles.map}
+          mapType="satellite"
+          initialRegion={{
+            latitude: 40.1020,
+            longitude: -88.2272,
+            latitudeDelta: 0.0222, // Zoom Level for the map
+            longitudeDelta: 0.0121,
+          }}
+          onMapReady={() => {
+            console.log('Map ready');
+          }}
+          onLongPress={handleLongPress}
+        >
+          {/* Filter and display incident markers on map */}
+          {incidents
+            // Filter the incidents array based on selected type
+            // First part of the OR condition: Show all incidents if "all" is selected 
+            // Second part of the OR condition: Only show the ones matching the selected type
+            .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
+            // Map through the filtered incidents array and create a Marker component for each incident
+            // For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/marker.md
+            .map((incident) => (
+              <Marker
+                key={incident.id} // React requires unique key for list item
+                coordinate={{ // // Set marker position on map
+                  latitude: incident.location.latitude,
+                  longitude: incident.location.longitude,
+                }}
+                pinColor={getPinColor(incident.type)} // Set pin color based on incident type
+                title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+                // Show description if available or show timestamp
+                description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+              // pinColor="red"
+              // title="Test Marker"
+              // description="This is a test marker"
+              />
+            )
+            )
+          }
+        </MapView>
+
+        <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
+          <Text style={styles.sosButtonText}>SOS</Text>
+        </TouchableOpacity>
+      </View>
       {/* for testing push notifs, comment all the above code and uncomment the below code */}
       {/* this will not work unless you have an Expo Account and are part of the CS124 org on Expo (Yash must add you specifically) */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'space-around' }}>
+      {/* <View style={{ flex: 1, alignItems: 'center', justifyContent: 'space-around' }}>
         <Text>Your Expo push token: {expoPushToken}</Text>
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <Text>Title: {notification && notification.request.content.title} </Text>
@@ -191,7 +252,7 @@ export default function Home() {
             await sendPushNotification(expoPushToken);
           }}
         />
-      </View>
+      </View> */}
     </GestureHandlerRootView>
   );
 }
