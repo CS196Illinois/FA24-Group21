@@ -142,7 +142,7 @@ export default function Home() {
         <Text style={styles.sosButtonText}>SOS</Text>
       </TouchableOpacity>
 
-      <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints}>
+      <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints} enableDismissOnClose={false} enablePanDownToClose={false}>
           {renderBottomSheetContent()}
       </BottomSheetModal>
 
