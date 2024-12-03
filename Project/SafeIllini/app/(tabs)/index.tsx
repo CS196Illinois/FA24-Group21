@@ -171,48 +171,41 @@ export default function Home() {
         </Picker>
       </View>
       {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
-      <MapView
-        style={styles.map}
-        provider="google"
-        mapType="satellite"
-        initialRegion={{
-          latitude: 40.1020,
-          longitude: -88.2272,
-          latitudeDelta: 0.0222, // Zoom Level for the map
-          longitudeDelta: 0.0121,
-        }}
-        onMapReady={() => {
-          console.log('Map ready');
-        }}
-        onLongPress={handleLongPress}
-      >
+      
+      {/* <MapView */}
+        {/*  style={styles.map} */}
+        {/*  provider="google" */}
+        {/*  mapType="satellite" */}
+        {/*  initialRegion={{ */}
+           {/* latitude: 40.1020, */}
+           {/* longitude: -88.2272, */}
+           {/* latitudeDelta: 0.0222,  Zoom Level for the map */}
+           {/* longitudeDelta: 0.0121, */}
+         {/* }} */}
+         {/* onMapReady={() => { */}
+           {/* console.log('Map ready'); */}
+         {/* }} */}
+         {/* onLongPress={handleLongPress} */}
+      {/* > */}
         {/* Filter and display incident markers on map */}
-        {incidents
-          // Filter the incidents array based on selected type
-          // First part of the OR condition: Show all incidents if "all" is selected 
-          // Second part of the OR condition: Only show the ones matching the selected type
-          .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
-          // Map through the filtered incidents array and create a Marker component for each incident
-          // For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/marker.md
-          .map((incident) => (
-            <Marker
-              key={incident.id} // React requires unique key for list item
-              coordinate={{ // // Set marker position on map
-                latitude: incident.location.latitude,
-                longitude: incident.location.longitude,
-              }}
-              pinColor={getPinColor(incident.type)} // Set pin color based on incident type
-              title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
-              // Show description if available or show timestamp
-              description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
-            // pinColor="red"
-            // title="Test Marker"
-            // description="This is a test marker"
-            />
-          )
-          )
-        }
-      </MapView>
+        {/* {incidents */}
+
+          {/* .map((incident) => ( */}
+            {/* <Marker */}
+              {/* key={incident.id}  React requires unique key for list item */}
+              {/* coordinate={{   Set marker position on map */}
+                {/* latitude: incident.location.latitude, */}
+                {/* longitude: incident.location.longitude, */}
+              {/* }} */}
+              {/* pinColor={getPinColor(incident.type)}  Set pin color based on incident type */}
+              {/* title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`} */}
+              {/* description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`} */}
+
+            {/* /> */}
+          {/* ) */}
+          {/* ) */}
+        {/* } */}
+      {/* </MapView> */ }
 
       <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
         <Text style={styles.sosButtonText}>SOS</Text>
@@ -221,7 +214,7 @@ export default function Home() {
   );
 }
 
-// Styles for component layout and appearance
+ //Styles for component layout and appearance
 const styles = StyleSheet.create({
   container: {
     flex: 1, // Take up all available space
