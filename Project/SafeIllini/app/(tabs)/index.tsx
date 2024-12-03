@@ -1,19 +1,25 @@
-/* eslint-disable import/no-unresolved */
-import React, { useState, useEffect } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, FlatList } from "react-native";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, FlatList, Modal } from "react-native";
+
 import { Picker } from "@react-native-picker/picker";
 import { database } from "@/configs/firebaseConfig";
 import { ref, onValue } from "firebase/database";
 import { router } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
-import BottomSheet from "reanimated-bottom-sheet";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Incident, IncidentType } from "@/types/incidents";
 import { INCIDENT_TYPE_LABELS, PIN_COLORS } from "@/constants/Incidents";
+import BottomSheet from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null); // State to track the selected incident
+  const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
+  
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["25%", "50%"], []);
 
   useEffect(() => {
     const incidentsRef = ref(database, "incidents");
@@ -32,16 +38,17 @@ export default function Home() {
         setIncidents([]);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  const handleLongPress = (event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    router.push({
-      pathname: "/AddIncident",
-      params: { latitude, longitude },
-    });
+  const handlePinLongPress = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setModalVisible(true); // Open modal
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedIncident(null); // Clear selected incident
   };
 
   const callCampusPolice = () => {
@@ -56,7 +63,8 @@ export default function Home() {
     return PIN_COLORS[incidentType] || "black";
   };
 
-  const renderContent = () => (
+
+  const renderBottomSheetContent  = () => (
     <View style={styles.bottomSheetContent}>
       <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
       <FlatList
@@ -76,66 +84,93 @@ export default function Home() {
 
   const sheetRef = React.useRef(null);
 
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedIncidentType}
-            onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
-            style={styles.picker}
-          >
-            <Picker.Item label="All Incidents" value="all" />
-            {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
-              <Picker.Item key={value} label={label} value={value} />
-            ))}
-          </Picker>
-        </View>
-
-        <MapView
-          style={styles.map}
-          mapType="satellite"
-          initialRegion={{
-            latitude: 40.102,
-            longitude: -88.2272,
-            latitudeDelta: 0.0222,
-            longitudeDelta: 0.0121,
-          }}
-          onLongPress={handleLongPress}
+    <View style={styles.container}>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedIncidentType}
+          onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
+          style={styles.picker}
         >
-          {incidents
-            .filter(
-              (incident) =>
-                selectedIncidentType === "all" || incident.type === selectedIncidentType
-            )
-            .map((incident) => (
-              <Marker
-                key={incident.id}
-                coordinate={{
-                  latitude: incident.location.latitude,
-                  longitude: incident.location.longitude,
-                }}
-                pinColor={getPinColor(incident.type)}
-                title={`${incident.type.replace("_", " ").toUpperCase()} - ${incident.severity}`}
-                description={
-                  incident.description ||
-                  `Reported at ${new Date(incident.timestamp).toLocaleString()}`
-                }
-              />
-            ))}
-        </MapView>
-
-        <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
-          <Text style={styles.sosButtonText}>SOS</Text>
-        </TouchableOpacity>
-
-        <BottomSheet
-          ref={sheetRef}
-          snapPoints={[300, 100]}
-          borderRadius={20}
-          renderContent={renderContent}
-        />
+          <Picker.Item label="All Incidents" value="all" />
+          {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
+            <Picker.Item key={value} label={label} value={value} />
+          ))}
+        </Picker>
       </View>
+
+      <MapView
+        style={styles.map}
+        mapType="satellite"
+        initialRegion={{
+          latitude: 40.102,
+          longitude: -88.2272,
+          latitudeDelta: 0.0222,
+          longitudeDelta: 0.0121,
+        }}
+      >
+        {incidents
+          .filter(
+            (incident) =>
+              selectedIncidentType === "all" || incident.type === selectedIncidentType
+          )
+          .map((incident) => (
+            <Marker
+              key={incident.id}
+              coordinate={{
+                latitude: incident.location.latitude,
+                longitude: incident.location.longitude,
+              }}
+              pinColor={getPinColor(incident.type)}
+            
+              onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
+            />
+          ))}
+      </MapView>
+
+      <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
+        <Text style={styles.sosButtonText}>SOS</Text>
+      </TouchableOpacity>
+
+      <BottomSheet ref={bottomSheetRef} index={0} snapPoints={snapPoints}>
+          {renderBottomSheetContent()}
+      </BottomSheet>
+
+      {/* Modal for displaying incident details */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {selectedIncident && (
+              <>
+                <Text style={styles.modalTitle}>Incident Details</Text>
+                <Text>Type: {selectedIncident.type.replace("_", " ")}</Text>
+                <Text>Severity: {selectedIncident.severity}</Text>
+                <Text>
+                  Description: {selectedIncident.description || "No description available"}
+                </Text>
+                <Text>
+                  Reported At:{" "}
+                  {new Date(selectedIncident.timestamp).toLocaleString()}
+                </Text>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </View>
     </GestureHandlerRootView>
   );
 }
@@ -170,23 +205,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 30,
     elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   sosButtonText: {
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
   bottomSheetContent: {
+    flex: 1,
     backgroundColor: "#fff",
     padding: 16,
-    height: 300,
   },
   bottomSheetHeader: {
     fontSize: 18,
@@ -202,5 +236,28 @@ const styles = StyleSheet.create({
   incidentText: {
     fontSize: 14,
     marginBottom: 5,
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "red",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
