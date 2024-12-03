@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { database } from "../../configs/firebaseConfig"
+import { database } from "@/configs/firebaseConfig"
 import { ref, set, onValue } from 'firebase/database';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
@@ -173,7 +173,6 @@ export default function Home() {
       {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
       <MapView
         style={styles.map}
-        provider="google"
         mapType="satellite"
         initialRegion={{
           latitude: 40.1020,
