@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, FlatList, Modal } from "react-native";
 
 import { Picker } from "@react-native-picker/picker";
@@ -85,7 +85,10 @@ export default function Home() {
 
   const sheetRef = React.useRef(null);
 
-
+  const presentBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.present();
+  }, []);
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <BottomSheetModalProvider>
@@ -127,7 +130,7 @@ export default function Home() {
               }}
               pinColor={getPinColor(incident.type)}
             
-              onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
+              onPress={() => presentBottomSheet()} // Trigger modal on long press
             />
           ))}
       </MapView>
