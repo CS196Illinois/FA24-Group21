@@ -94,7 +94,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 export default function Home() {
   // notification system
   // const { expoPushToken, notification, sendPushNotification } = useNotifications();
-  
+
   // state management for incident type filter and incidents list
   // track the currently selected incident type filter
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
@@ -177,7 +177,7 @@ export default function Home() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedIncidentType}
