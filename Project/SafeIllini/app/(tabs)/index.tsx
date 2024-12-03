@@ -8,9 +8,8 @@ import { router } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { Incident, IncidentType } from "@/types/incidents";
 import { INCIDENT_TYPE_LABELS, PIN_COLORS } from "@/constants/Incidents";
-import BottomSheet from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
 
 export default function Home() {
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
@@ -18,7 +17,7 @@ export default function Home() {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null); // State to track the selected incident
   const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
   
-  const bottomSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["25%", "50%"], []);
 
   useEffect(() => {
@@ -65,9 +64,9 @@ export default function Home() {
 
 
   const renderBottomSheetContent  = () => (
-    <View style={styles.bottomSheetContent}>
+    <BottomSheetView style={styles.bottomSheetContent}>
       <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
-      <FlatList
+      <BottomSheetFlatList
         data={incidents.slice(0, 5)} // Show only the latest 5 incidents
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -79,7 +78,7 @@ export default function Home() {
           </View>
         )}
       />
-    </View>
+    </BottomSheetView>
   );
 
   const sheetRef = React.useRef(null);
@@ -134,9 +133,9 @@ export default function Home() {
         <Text style={styles.sosButtonText}>SOS</Text>
       </TouchableOpacity>
 
-      <BottomSheet ref={bottomSheetRef} index={0} snapPoints={snapPoints}>
+      <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints}>
           {renderBottomSheetContent()}
-      </BottomSheet>
+      </BottomSheetModal>
 
       {/* Modal for displaying incident details */}
       <Modal
