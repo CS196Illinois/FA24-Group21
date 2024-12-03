@@ -93,7 +93,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 export default function Home() {
   // notification system
-  const { expoPushToken, notification, sendPushNotification } = useNotifications();
+  // const { expoPushToken, notification, sendPushNotification } = useNotifications();
+  
   // state management for incident type filter and incidents list
   // track the currently selected incident type filter
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
