@@ -7,7 +7,7 @@ import { ref, onValue } from "firebase/database";
 import { router } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { Incident, IncidentType } from "@/types/incidents";
-import { INCIDENT_TYPE_LABELS, PIN_COLORS } from "@/constants/Incidents";
+import { INCIDENT_TYPE_LABELS, PIN_COLORS, SEVERITY_LEVEL_LABELS } from "@/constants/Incidents";
 import { BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -20,7 +20,7 @@ export default function Home() {
   
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["25%", "50%"], []);
+  const snapPoints = useMemo(() => ["12%", "50%"], []);
 
   bottomSheetRef.current?.present();
 
@@ -67,24 +67,52 @@ export default function Home() {
   };
 
 
-  const renderBottomSheetContent  = () => (
-    <BottomSheetView style={styles.bottomSheetContent}>
-      <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
-      <BottomSheetFlatList
-        data={incidents.slice(0, 5)} // Show only the latest 5 incidents
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.incidentItem}>
-            <Text style={styles.incidentText}>{`Type: ${item.type.replace("_", " ").toUpperCase()}`}</Text>
-            <Text style={styles.incidentText}>{`Severity: ${item.severity}`}</Text>
-            <Text style={styles.incidentText}>{`Reported at: ${new Date(item.timestamp).toLocaleString()}`}</Text>
-            <Text style={styles.incidentText}>{item.description || "No description provided"}</Text>
-          </View>
-        )}
-      />
-    </BottomSheetView>
+  const renderBottomSheetContent = () => {
+    const latestIncidents = [...incidents]
+      .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp (most recent first)
+      .slice(0, 5); // Get the latest 5 incidents
+  
+    // Helper functions to find labels from constants
+    const getIncidentTypeLabel = (type: string) => {
+      const typeObj = INCIDENT_TYPE_LABELS.find((item) => item.value === type);
+      return typeObj ? typeObj.label : "Unknown Type";
+    };
+  
+    const getSeverityLabel = (severity: string) => {
+      const severityObj = SEVERITY_LEVEL_LABELS.find((item) => item.value === severity);
+      return severityObj ? severityObj.label : "Unknown Severity";
+    };
+  
+    return (
+      <BottomSheetView style={[styles.bottomSheetContent, { flex: 1 }]}>
+        <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
+        <BottomSheetFlatList
+          data={latestIncidents}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }} // Adds padding to prevent cut-off
+          keyboardShouldPersistTaps="handled" // Ensures the list is scrollable even with touch gestures
+          renderItem={({ item }) => (
+            <View style={styles.incidentItem}>
+              <Text style={styles.incidentText}>
+                {`Type: ${getIncidentTypeLabel(item.type)}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {`Severity: ${getSeverityLabel(item.severity)}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {`Reported at: ${new Date(item.timestamp).toLocaleString()}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {item.description || "No description provided"}
+              </Text>
+            </View>
+          )}
+        />
+      </BottomSheetView>
+    );
+  };
+  
 
-  );
 
   const sheetRef = React.useRef(null);
 
@@ -154,29 +182,39 @@ export default function Home() {
         onRequestClose={closeModal}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {selectedIncident && (
-              <>
-                <Text style={styles.modalTitle}>Incident Details</Text>
-                <Text>Type: {selectedIncident.type.replace("_", " ")}</Text>
-                <Text>Severity: {selectedIncident.severity}</Text>
-                <Text>
-                  Description: {selectedIncident.description || "No description available"}
-                </Text>
-                <Text>
-                  Reported At:{" "}
-                  {new Date(selectedIncident.timestamp).toLocaleString()}
-                </Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={closeModal}
-                >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
+  <View style={styles.modalContent}>
+    {selectedIncident && (
+      <>
+        <Text style={styles.modalTitle}>Incident Details</Text>
+        <Text>
+          Type:{" "}
+          {
+            INCIDENT_TYPE_LABELS.find((item) => item.value === selectedIncident.type)?.label ||
+            "Unknown Type"
+          }
+        </Text>
+        <Text>
+          Severity:{" "}
+          {
+            SEVERITY_LEVEL_LABELS.find((item) => item.value === selectedIncident.severity)?.label ||
+            "Unknown Severity"
+          }
+        </Text>
+        <Text>
+          Description: {selectedIncident.description || "No description available"}
+        </Text>
+        <Text>
+          Reported At:{" "}
+          {new Date(selectedIncident.timestamp).toLocaleString()}
+        </Text>
+        <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+          <Text style={styles.closeButtonText}>Close</Text>
+        </TouchableOpacity>
+      </>
+    )}
+  </View>
+</View>
+
       </Modal>
     </View>
     </BottomSheetModalProvider>
