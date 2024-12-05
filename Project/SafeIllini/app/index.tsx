@@ -1,10 +1,11 @@
-import { Text, StyleSheet, View, Pressable} from "react-native";
-import { database, auth } from "../configs/firebaseConfig"
+import { Text, StyleSheet, View, Pressable, Button } from "react-native";
+import { database } from "../configs/firebaseConfig"
 import { ref, get, child } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import MapView from 'react-native-maps';
 import { Platform } from "react-native";
 import { Heatmap } from 'react-native-maps';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import React, {useState, useEffect, useRef}  from "react";
 
@@ -50,6 +51,11 @@ export default function Index() {
   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
   const [lastUpdated, setLastUpdated] = useState<string | null>(null); // New state for last updated time
 
+  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // 7 days ago
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
   const [heatmapPoints, setHeatmapPoints] = useState<
     { latitude: number; longitude: number; weight: number; type: string }[]
   >([]);
@@ -64,6 +70,12 @@ export default function Index() {
             id: childSnapshot.key,
             ...childSnapshot.val()
           });
+        });
+
+        incidentsData = incidentsData.filter(incident => {
+          const incidentDate = new Date(incident.timestamp);
+          return (selectedSeverity === 'all' || incident.severity === selectedSeverity) &&
+                 incidentDate >= startDate && incidentDate <= endDate;
         });
         
         // Filter incidents based on current selectedSeverity state
@@ -93,7 +105,19 @@ export default function Index() {
 //i should add something like last updated on (insert time)
   useEffect(() => {
     fetchIncidents();
-  }, [selectedSeverity]);
+  }, [selectedSeverity, startDate, endDate]);
+
+  const onChangeStartDate = (event: any, selectedDate: any) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartPicker(Platform.OS === 'ios');
+    setStartDate(currentDate);
+  };
+
+  const onChangeEndDate = (event: any, selectedDate: any) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndPicker(Platform.OS === 'ios');
+    setEndDate(currentDate);
+  };
 
     const campusCoords = {
       latitude: 40.0996,
@@ -120,6 +144,30 @@ export default function Index() {
           <Picker.Item label="Medium Severity" value="medium" />
           <Picker.Item label="High Severity" value="high" />
         </Picker>
+      </View>
+      <View style={styles.datePickerContainer}>
+        <Button onPress={() => setShowStartPicker(true)} title="Start Date" />
+        <Text>{startDate.toLocaleDateString()}</Text>
+        {showStartPicker && (
+          <DateTimePicker
+            testID="startDatePicker"
+            value={startDate}
+            mode="date"
+            display="default"
+            onChange={onChangeStartDate}
+          />
+        )}
+        <Button onPress={() => setShowEndPicker(true)} title="End Date" />
+        <Text>{endDate.toLocaleDateString()}</Text>
+        {showEndPicker && (
+          <DateTimePicker
+            testID="endDatePicker"
+            value={endDate}
+            mode="date"
+            display="default"
+            onChange={onChangeEndDate}
+          />
+        )}
       </View>
       <MapView
       ref={mapRef}
@@ -223,5 +271,14 @@ const styles = StyleSheet.create({
   lastUpdatedText: {
     color: "white",
     fontSize: 12,
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    margin: 10,
   },
 });
