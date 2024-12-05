@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
   },
   pickerWrapper: {
     backgroundColor: 'white',
-    borderRadius: 50, // Fully circular
+    borderRadius: 8, // Fully circular
     overflow: 'hidden', // Ensure the Picker stays within the circle
-    padding: 5, // Add padding for better layout
+    padding: 0.5, // Add padding for better layout
     margin: 10,
-    elevation: 3,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
   }, 
   lastUpdatedContainer: {
     position: "absolute",
-    right: 10, // Move it to the right side of the screen
-    bottom: 70, // You can adjust the bottom margin if needed
+    right: 180, // Move it to the right side of the screen
+    bottom: 630, // You can adjust the bottom margin if needed
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     padding: 5,
     borderRadius: 5,
@@ -276,9 +276,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    padding: 10,
+    padding: 7,
     backgroundColor: 'white',
-    borderRadius: 8,
-    margin: 10,
+    borderRadius: 10,
+    margin: 1,
   },
 });
