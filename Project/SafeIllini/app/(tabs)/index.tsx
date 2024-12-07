@@ -1,16 +1,13 @@
 /* eslint-disable import/no-unresolved */
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, FlatList, Modal } from "react-native";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, Modal } from "react-native";
 import { GestureHandlerRootView, Pressable } from "react-native-gesture-handler";
 import { BottomSheetModalProvider, BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { Picker } from "@react-native-picker/picker";
-import { ref, set, onValue } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 // import { getToken } from 'firebase/messaging';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
 
 import { database } from "@/configs/firebaseConfig";
 // import { database, messaging } from "@/configs/firebaseConfig";
@@ -175,7 +172,7 @@ export default function Home() {
 
   // initiate emergency call to campus police
   const callCampusPolice = () => {
-    const campusPoliceNumber = "6308910198";
+    const campusPoliceNumber = "2173331216"; 
     Linking.openURL(`tel:${campusPoliceNumber}`)
       .catch((err) => {
         console.error("Failed to open dialer:", err);
@@ -387,7 +384,6 @@ export default function Home() {
             }}
           />
         </View> */}
-
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
@@ -418,7 +414,7 @@ const styles = StyleSheet.create({
   sosButton: {
     position: 'absolute',
     right: 20,
-    bottom: 40,
+    bottom: 45,
     backgroundColor: 'red',
     paddingVertical: 10,
     paddingHorizontal: 20,
