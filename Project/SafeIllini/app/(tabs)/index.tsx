@@ -389,7 +389,7 @@ export default function Home() {
   );
 }
 
- //Styles for component layout and appearance
+// Styles for component layout and appearance
 const styles = StyleSheet.create({
   container: {
     flex: 1, // Take up all available space
