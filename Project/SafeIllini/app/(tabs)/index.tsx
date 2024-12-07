@@ -1,13 +1,21 @@
 /* eslint-disable import/no-unresolved */
-import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, Modal } from "react-native";
+import { GestureHandlerRootView, Pressable } from "react-native-gesture-handler";
+import { BottomSheetModalProvider, BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { Picker } from "@react-native-picker/picker";
-import { database } from "../../configs/firebaseConfig"
-import { ref, set, onValue } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
+// import { getToken } from 'firebase/messaging';
 import { router } from 'expo-router';
 import MapView, { Marker } from 'react-native-maps';
+
+import { database } from "@/configs/firebaseConfig";
+// import { database, messaging } from "@/configs/firebaseConfig";
 import { Incident, IncidentType } from '@/types/incidents';
-import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
+import { INCIDENT_TYPE_LABELS, PIN_COLORS, SEVERITY_LEVEL_LABELS } from '@/constants/Incidents';
+// importing our useNotifications hook to handle push notifications
+import { useNotifications } from '@/hooks/useNotifications';
+
 // using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
 /**
 * @typedef {Object} Incident
@@ -82,13 +90,32 @@ import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
 
 
 export default function Home() {
+  // notification system
+  // const { expoPushToken, notification, sendPushNotification } = useNotifications();
+  
+  // bottom sheet for latest incidents
+  const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const mapRef = React.useRef<MapView>(null);
+  const snapPoints = useMemo(() => ["12%", "50%"], []);
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null); // State to track the selected incident
+
   // state management for incident type filter and incidents list
   // track the currently selected incident type filter
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
   // state to store all incidents from the database
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  // effect hook to fetch and listen for real-time updates from Firebase
+  // what does useEffect hook do?
+  // useEffect hook is used to run side effects, such as data fetching, subscriptions, or updating the DOM, after rendering a component.
+  // It takes in two arguments: a function that performs the side effect and an array of dependencies.
+  // useEffect(() => {
+  //   // side effect code here
+  // }, [dependencies]);
+  // in our case, we want to fetch incidents from Firebase and listen for real-time updates when the component mounts
+  // additionally, we want to send notifications to the user whenever they are near a high risk incident that's been added in the past 12 hours
   useEffect(() => {
+    // makes sure the bottom sheet is visible when the component mounts
+    bottomSheetRef.current?.present();
     // creating reference to the incidents node in Firebase
     const incidentsRef = ref(database, 'incidents');
     // Setting up real-time listener that updates when data changes
@@ -113,8 +140,19 @@ export default function Home() {
       }
     });
     // cleanup function to remove listener when component unmounts
-    return () => unsubscribe()
+    return () => unsubscribe();
   }, []);
+
+
+  const handlePinLongPress = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setModalVisible(true); // Open modal
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedIncident(null); // Clear selected incident
+  };
 
   const handleLongPress = (event: any) => {
     // const { locationX, locationY } = event.nativeEvent;
@@ -134,7 +172,7 @@ export default function Home() {
 
   // initiate emergency call to campus police
   const callCampusPolice = () => {
-    const campusPoliceNumber = "6308910198";
+    const campusPoliceNumber = "2173331216"; 
     Linking.openURL(`tel:${campusPoliceNumber}`)
       .catch((err) => {
         console.error("Failed to open dialer:", err);
@@ -155,62 +193,199 @@ export default function Home() {
   //   }
   // };
 
+  const recenterMap = () => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: 40.107491,
+          longitude: -88.227203,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        1000
+      );
+    }
+  };
+
+  const renderBottomSheetContent = () => {
+    const latestIncidents = [...incidents]
+      .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp (most recent first)
+      .slice(0, 5); // Get the latest 5 incidents
+  
+    // Helper functions to find labels from constants
+    const getIncidentTypeLabel = (type: string) => {
+      const typeObj = INCIDENT_TYPE_LABELS.find((item) => item.value === type);
+      return typeObj ? typeObj.label : "Unknown Type";
+    };
+  
+    const getSeverityLabel = (severity: string) => {
+      const severityObj = SEVERITY_LEVEL_LABELS.find((item) => item.value === severity);
+      return severityObj ? severityObj.label : "Unknown Severity";
+    };
+  
+    return (
+      <BottomSheetView style={[styles.bottomSheetContent, { flex: 1 }]}>
+        <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
+        <BottomSheetFlatList
+          data={latestIncidents}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }} // Adds padding to prevent cut-off
+          keyboardShouldPersistTaps="handled" // Ensures the list is scrollable even with touch gestures
+          renderItem={({ item }) => (
+            <View style={styles.incidentItem}>
+              <Text style={styles.incidentText}>
+                {`Type: ${getIncidentTypeLabel(item.type)}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {`Severity: ${getSeverityLabel(item.severity)}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {`Reported at: ${new Date(item.timestamp).toLocaleString()}`}
+              </Text>
+              <Text style={styles.incidentText}>
+                {item.description || "No description provided"}
+              </Text>
+            </View>
+          )}
+        />
+      </BottomSheetView>
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedIncidentType}
-          onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
-          style={styles.picker}
-        >
-          {/* Picker options for different incident types */}
-          <Picker.Item label="All Incidents" value="all" />
-          {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
-            <Picker.Item key={value} label={label} value={value} />
-          ))}
-        </Picker>
-      </View>
-      {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
-      
-      {/* <MapView */}
-        {/*  style={styles.map} */}
-        {/*  provider="google" */}
-        {/*  mapType="satellite" */}
-        {/*  initialRegion={{ */}
-           {/* latitude: 40.1020, */}
-           {/* longitude: -88.2272, */}
-           {/* latitudeDelta: 0.0222,  Zoom Level for the map */}
-           {/* longitudeDelta: 0.0121, */}
-         {/* }} */}
-         {/* onMapReady={() => { */}
-           {/* console.log('Map ready'); */}
-         {/* }} */}
-         {/* onLongPress={handleLongPress} */}
-      {/* > */}
-        {/* Filter and display incident markers on map */}
-        {/* {incidents */}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <View style={styles.container}>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedIncidentType}
+              onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
+              style={styles.picker}
+            >
+              {/* Picker options for different incident types */}
+              <Picker.Item label="All Incidents" value="all" />
+              {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
+                <Picker.Item key={value} label={label} value={value} />
+              ))}
+            </Picker>
+          </View>
+          {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            mapType="satellite"
+            initialRegion={{
+              latitude: 40.1020,
+              longitude: -88.2272,
+              latitudeDelta: 0.0222, // Zoom Level for the map
+              longitudeDelta: 0.0121,
+            }}
+            onMapReady={() => {
+              console.log('Map ready');
+            }}
+            onLongPress={handleLongPress}
+          >
+            {/* Filter and display incident markers on map */}
+            {incidents
+              // Filter the incidents array based on selected type
+              // First part of the OR condition: Show all incidents if "all" is selected 
+              // Second part of the OR condition: Only show the ones matching the selected type
+              .filter(incident => selectedIncidentType === "all" || incident.type === selectedIncidentType)
+              // Map through the filtered incidents array and create a Marker component for each incident
+              // For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/marker.md
+              .map((incident) => (
+                <Marker
+                  key={incident.id} // React requires unique key for list item
+                  coordinate={{ // // Set marker position on map
+                    latitude: incident.location.latitude,
+                    longitude: incident.location.longitude,
+                  }}
+                  pinColor={getPinColor(incident.type)} // Set pin color based on incident type
+                  // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+                  onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
+                  // Show description if available or show timestamp
+                  // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+                // pinColor="red"
+                // title="Test Marker"
+                // description="This is a test marker"
+                />
+              )
+              )
+            }
+          </MapView>
 
-          {/* .map((incident) => ( */}
-            {/* <Marker */}
-              {/* key={incident.id}  React requires unique key for list item */}
-              {/* coordinate={{   Set marker position on map */}
-                {/* latitude: incident.location.latitude, */}
-                {/* longitude: incident.location.longitude, */}
-              {/* }} */}
-              {/* pinColor={getPinColor(incident.type)}  Set pin color based on incident type */}
-              {/* title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`} */}
-              {/* description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`} */}
+          <Pressable style={styles.sosButton} onPress={callCampusPolice}>
+            <Text style={styles.sosButtonText}>SOS</Text>
+          </Pressable>
 
-            {/* /> */}
-          {/* ) */}
-          {/* ) */}
-        {/* } */}
-      {/* </MapView> */ }
+          <TouchableOpacity style={styles.centerButton} onPress={recenterMap}>
+            <Text style={styles.recenterButtonText}>Recenter</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
-        <Text style={styles.sosButtonText}>SOS</Text>
-      </TouchableOpacity>
-    </View>
+
+          <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints} enableDismissOnClose={false} enablePanDownToClose={false}>
+            {renderBottomSheetContent()}
+          </BottomSheetModal>
+          {/* Modal for displaying incident details */}
+          <Modal
+            visible={modalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={closeModal}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {selectedIncident && (
+                  <>
+                    <Text style={styles.modalTitle}>Incident Details</Text>
+                    <Text>
+                      Type:{" "}
+                      {
+                        INCIDENT_TYPE_LABELS.find((item) => item.value === selectedIncident.type)?.label ||
+                        "Unknown Type"
+                      }
+                    </Text>
+                    <Text>
+                      Severity:{" "}
+                      {
+                        SEVERITY_LEVEL_LABELS.find((item) => item.value === selectedIncident.severity)?.label ||
+                        "Unknown Severity"
+                      }
+                    </Text>
+                    <Text>
+                      Description: {selectedIncident.description || "No description available"}
+                    </Text>
+                    <Text>
+                      Reported At:{" "}
+                      {new Date(selectedIncident.timestamp).toLocaleString()}
+                    </Text>
+                    <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
+        </View>
+        {/* for testing push notifs, comment all the above code and uncomment the below code */}
+        {/* this will not work unless you have an Expo Account and are part of the CS124 org on Expo (Yash must add you specifically) */}
+        {/* <View style={{ flex: 1, alignItems: 'center', justifyContent: 'space-around' }}>
+          <Text>Your Expo push token: {expoPushToken}</Text>
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <Text>Title: {notification && notification.request.content.title} </Text>
+            <Text>Body: {notification && notification.request.content.body}</Text>
+            <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
+          </View>
+          <Button
+            title="Press to Send Notification"
+            onPress={async () => {
+              await sendPushNotification(expoPushToken);
+            }}
+          />
+        </View> */}
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -239,7 +414,7 @@ const styles = StyleSheet.create({
   sosButton: {
     position: 'absolute',
     right: 20,
-    bottom: 40,
+    bottom: 45,
     backgroundColor: 'red',
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -252,12 +427,86 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    marginBottom: 30,
   },
   sosButtonText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  bottomSheetContent: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 16,
+  },
+  bottomSheetHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  incidentItem: {
+    marginBottom: 10,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  incidentText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "red",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  // recenterButton: {
+  //   position: "absolute",
+  //   right: 20,
+  //   bottom: 100,
+  //   backgroundColor: "blue",
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 20,
+  //   borderRadius: 30,
+  //   // zIndex: 2,
+  // },
+  centerButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    // bottom: 20,
+    // alignSelf: 'center',
+    backgroundColor: '#e66220',
+    borderRadius: 30,
+    elevation: 3,
+  },
+  recenterButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
 
 

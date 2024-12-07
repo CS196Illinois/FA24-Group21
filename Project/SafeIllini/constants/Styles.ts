@@ -18,7 +18,7 @@ export const addIncidentStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3
+    elevation: 3,
   },
   label: {
     fontSize: 16,
@@ -37,7 +37,8 @@ export const addIncidentStyles = StyleSheet.create({
   },
   dateTime: {
     fontSize: 15,
-    color: '#666'
+    color: '#666',
+    marginRight: '37%'
   },
   pickerContainer: {
     borderWidth: 1,
@@ -66,44 +67,19 @@ export const addIncidentStyles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: '#4CAF50'
+  },
+  smallButton: {
+    width: 80
+  }
+  ,
+  displayPhotos: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    minHeight: 50,
+    padding: 'auto',
+    flexWrap: 'wrap'
   }
 })
-
-// old styling for addIncident screen
-// export const addIncidentStyles = {
-//   container: {
-//     flex: 1, // take up all available space
-//     padding: 16 // adds some padding around the screen
-//   },
-//   descriptionContainer: {
-//     backgroundColor: "000000",
-//     height: 100,
-//     width: '100%',
-//     borderWidth: 1,
-//     borderRadius: 8,
-//     marginVertical: 10 // adds margin above and below the container
-//   },
-//   textInput: {
-//     padding: 10, // adds padding around the text input on all sides
-//     fontSize: 16 // sets the font size to 16
-//   },
-//   genericContainer: {
-//     height: 50,
-//     width: '100%',
-//     borderWidth: 1,
-//     borderRadius: 8,
-//     marginVertical: 8
-//   },
-//   pickerContainer: {
-//     width: '100%',
-//     borderWidth: 1,
-//     borderRadius: 8,
-//     marginVertical: 8
-//   },
-//   pickerDropDown: {
-//     width: '100%',
-//     height: 60,
-//     fontSize: 16,
-//     padding: 10,
-//   }
-// }
