@@ -1,402 +1,287 @@
 /* eslint-disable import/no-unresolved */
-import React, { useState, useEffect } from "react";
-import { Text, View, Image, StyleSheet, TouchableOpacity, Linking, Alert, TouchableWithoutFeedback } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { database } from "../../../configs/firebaseConfig"
-import { ref, set, onValue } from 'firebase/database';
-import { router } from 'expo-router';
-import MapView, { Marker } from 'react-native-maps';
-import { Incident, IncidentType } from '@/types/incidents';
-import { INCIDENT_TYPE_LABELS, PIN_COLORS } from '@/constants/Incidents';
-// using Incident interface instead of PinPosition interface since we're going grab all the incidents from the database
-/**
-* @typedef {Object} Incident
-* @property {string} id - The unique identifier for the incident.
-* @property {string} type - The type of the incident.
-* @property {string} severity - The severity level of the incident.
-* @property {string} description - A description of the incident.
-* @property {Object} location - The location of the incident.
-* @property {number} location.latitude - The latitude of the incident location.
-* @property {number} location.longitude - The longitude of the incident location.
-* @property {number} timestamp - The timestamp of when the incident occurred.
-* @property {Object} [photos] - An object containing photos related to the incident.
-**/
-// interface Incident {
-//   id: string;
-//   type: string;
-//   severity: string;
-//   location: { latitude: number; longitude: number };
-//   timestamp: number;
-//   description?: string;
-//   photos?: { [key: string]: string };
-// }
+import { Text, StyleSheet, View, Pressable, Button } from "react-native";
+import { database } from "@/configs/firebaseConfig";
+import { ref, get, child } from 'firebase/database';
+import { Picker } from '@react-native-picker/picker';
+import MapView from 'react-native-maps';
+import { Platform } from "react-native";
+import { Heatmap } from 'react-native-maps';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-// sample incident data for testing purposes
-// const dummyIncidents: Incident[] = [
-//   {
-//     id: "1",
-//     type: "sexual_harassment",
-//     severity: "high",
-//     location: {
-//       latitude: 40.1020, // Main Quad
-//       longitude: -88.2272
-//     },
-//     timestamp: Date.now(),
-//     description: "Incident near Main Quad"
-//   },
-//   {
-//     id: "2",
-//     type: "drunk_driving",
-//     severity: "moderate",
-//     location: {
-//       latitude: 40.1089, // Illini Union
-//       longitude: -88.2272
-//     },
-//     timestamp: Date.now(),
-//     description: "Incident near Union"
-//   },
-//   {
-//     id: "3",
-//     type: "theft",
-//     severity: "low",
-//     location: {
-//       latitude: 40.1164, // Green Street
-//       longitude: -88.2434
-//     },
-//     timestamp: Date.now(),
-//     description: "Incident on Green Street"
-//   },
-//   {
-//     id: "4",
-//     type: "assault",
-//     severity: "high",
-//     location: {
-//       latitude: 40.105487, // West of Campus
-//       longitude: -88.2439389
-//     },
-//     timestamp: Date.now(),
-//     description: "Incident slightly west of campus"
-//   }
-// ];
+import React, {useState, useEffect, useRef}  from "react";
 
+//this is used to set the "weight" of each heatmap point depending on its severity (low, medium, high)
+//low severity is smallest, high severity is highest
+const getPointWeight = (severity: any) => {
+  switch (severity) {
+    case 'low':
+      return 0.65;
+    case 'medium':
+      return 0.8;
+    case 'high':
+      return 1;
+    default:
+      return 0.5;
+  }
+};
 
+const formatLastUpdated = (timestamp: any) => {
+  if (!timestamp) return "Never";
+  const date = new Date(timestamp);
+  return date.toLocaleString(); // Format as "MM/DD/YYYY, HH:MM:SS AM/PM"
+};
 
-export default function Home() {
-  // state management for incident type filter and incidents list
-  // track the currently selected incident type filter
-  const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all");
-  // state to store all incidents from the database
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  // effect hook to fetch and listen for real-time updates from Firebase
-  useEffect(() => {
-    // creating reference to the incidents node in Firebase
-    const incidentsRef = ref(database, 'incidents');
-    // Setting up real-time listener that updates when data changes
-    // onValue function returns a func that when called, stops listening for updates.
-    // We just named it "unsubscribe" because it terminates the subscription to Firebase updates and Removes the listener
-    const unsubscribe = onValue(incidentsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) { // check if data is available
-        const incidentsData: Incident[] = [];
-        // convert Firebase snapshot to array of incidents
+//this is the interface of the things each indicident from the firebase database will return when we request
+interface Incident {
+  id: string;
+  type: string; //this is something like "sexual-harrasment"
+  severity: string; //this is "high", "medium", or "low"
+  location: { latitude: number; longitude: number };
+  timestamp: number;
+  description?: string;
+  photos?: { [key: string]: string };
+}
+const db = ref(database);
+
+export default function Index() {
+  const mapRef = useRef<MapView | null>(null);
+  const pointTypes = ['low', 'medium', 'high']; 
+
+  const [selectedSeverity, setSelectedSeverity] = useState('all');
+
+  const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null); // New state for last updated time
+
+  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // 7 days ago
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const [heatmapPoints, setHeatmapPoints] = useState<
+    { latitude: number; longitude: number; weight: number; type: string }[]
+  >([]);
+
+  const fetchIncidents = async () => {
+    try {
+      const snapshot = await get(child(db, 'incidents'));
+      if (snapshot.exists()) {
+        let incidentsData: Incident[] = [];
         snapshot.forEach((childSnapshot) => {
           incidentsData.push({
-            id: childSnapshot.key, // extract the unique Firebase key as the incident ID
-            ...childSnapshot.val() // spread operator to merge all other incident data
+            id: childSnapshot.key,
+            ...childSnapshot.val()
           });
         });
-        setIncidents(incidentsData); // update the incidents state with the fetched data
-        // console.log("Incidents data:", incidentsData);
+
+        incidentsData = incidentsData.filter(incident => {
+          const incidentDate = new Date(incident.timestamp);
+          return (selectedSeverity === 'all' || incident.severity === selectedSeverity) &&
+                 incidentDate >= startDate && incidentDate <= endDate;
+        });
+        
+        // Filter incidents based on current selectedSeverity state
+        if (selectedSeverity !== 'all') {
+          incidentsData = incidentsData.filter(incident => incident.severity === selectedSeverity);
+        }
+        
+        setIncidents(incidentsData);
+        const points = incidentsData.length > 0 
+            ? incidentsData.map((incident) => ({
+              latitude: incident.location.latitude,
+              longitude: incident.location.longitude,
+              weight: getPointWeight(incident.severity), // Corrected here
+              type: incident.severity,
+            }))
+          : [];
+        setHeatmapPoints(points);
+        const now = new Date();
+        setLastUpdated(now.toISOString()); // Use ISO format for consistency
       } else {
         console.log("No data available");
-        setIncidents([]); // clear the incidents state if no data is available
       }
-    });
-    // cleanup function to remove listener when component unmounts
-    return () => unsubscribe()
-  }, []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+//i should add something like last updated on (insert time)
+  useEffect(() => {
+    fetchIncidents();
+  }, [selectedSeverity, startDate, endDate]);
 
-  const handleLongPress = (event: any) => {
-    // const { locationX, locationY } = event.nativeEvent;
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    // https://docs.expo.dev/router/advanced/nesting-navigators/#navigate-to-a-screen-in-a-nested-navigator
-    // since we're using expo router, we need to handle navigation differently
-    // we don't define navigation types. instead, we can just use router.push() to send info from one screen to another
-    // the params AKA data we pass will be avail in the AddIncident screen through useLocalSearchParams()
-    router.push({
-      pathname: "/AddIncident", // navigate to the AddIncident screen
-      params: { // pass latitude and longitude to AddIncident screen
-        latitude,
-        longitude,
-      }
-    });
+  const onChangeStartDate = (event: any, selectedDate: any) => {
+    const currentDate = selectedDate || startDate;
+    setShowStartPicker(Platform.OS === 'ios');
+    setStartDate(currentDate);
   };
 
-  // initiate emergency call to campus police
-  const callCampusPolice = () => {
-    const campusPoliceNumber = "6308910198";
-    Linking.openURL(`tel:${campusPoliceNumber}`)
-      .catch((err) => {
-        console.error("Failed to open dialer:", err);
-        Alert.alert("Error", "Unable to initiate the call. Please try again.");
-      });
+  const onChangeEndDate = (event: any, selectedDate: any) => {
+    const currentDate = selectedDate || endDate;
+    setShowEndPicker(Platform.OS === 'ios');
+    setEndDate(currentDate);
   };
-  // determine marker color based on incident type
-  const getPinColor = (incidentType: IncidentType) => {
-    return PIN_COLORS[incidentType] || 'black';
-  };
-  // const getPinColor = (incidentType: string) => {
-  //   switch (incidentType) {
-  //     case "sexual_harassment": return "red";
-  //     case "drunk_driving": return "orange";
-  //     case "theft": return "yellow";
-  //     case "assault": return "blue";
-  //     default: return "green";
-  //   }
-  // };
+
+    const campusCoords = {
+      latitude: 40.0996,
+      longitude: -88.229,
+      latitudeDelta: 0.0425,
+      longitudeDelta: 0.0001,
+    };
+
+    const centerMap = () => {  
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(campusCoords, 1000);
+      }
+    };
 
   return (
     <View style={styles.container}>
-      <View style={styles.pickerContainer}>
+      <View style={styles.pickerWrapper}>
         <Picker
-          selectedValue={selectedIncidentType}
-          onValueChange={(itemValue) => setSelectedIncidentType(itemValue)}
+          selectedValue={selectedSeverity}
+          onValueChange={(itemValue) => setSelectedSeverity(itemValue)}
           style={styles.picker}
+          itemStyle={styles.pickerItem}
         >
-          {/* Picker options for different incident types */}
           <Picker.Item label="All Incidents" value="all" />
-          {INCIDENT_TYPE_LABELS.map(({ label, value }) => (
-            <Picker.Item key={value} label={label} value={value} />
-          ))}
+          <Picker.Item label="Low Severity" value="low" />
+          <Picker.Item label="Medium Severity" value="medium" />
+          <Picker.Item label="High Severity" value="high" />
         </Picker>
       </View>
-      {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
-      
-      {/* <MapView */}
-        {/*  style={styles.map} */}
-        {/*  provider="google" */}
-        {/*  mapType="satellite" */}
-        {/*  initialRegion={{ */}
-           {/* latitude: 40.1020, */}
-           {/* longitude: -88.2272, */}
-           {/* latitudeDelta: 0.0222,  Zoom Level for the map */}
-           {/* longitudeDelta: 0.0121, */}
-         {/* }} */}
-         {/* onMapReady={() => { */}
-           {/* console.log('Map ready'); */}
-         {/* }} */}
-         {/* onLongPress={handleLongPress} */}
-      {/* > */}
-        {/* Filter and display incident markers on map */}
-        {/* {incidents */}
-
-          {/* .map((incident) => ( */}
-            {/* <Marker */}
-              {/* key={incident.id}  React requires unique key for list item */}
-              {/* coordinate={{   Set marker position on map */}
-                {/* latitude: incident.location.latitude, */}
-                {/* longitude: incident.location.longitude, */}
-              {/* }} */}
-              {/* pinColor={getPinColor(incident.type)}  Set pin color based on incident type */}
-              {/* title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`} */}
-              {/* description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`} */}
-
-            {/* /> */}
-          {/* ) */}
-          {/* ) */}
-        {/* } */}
-      {/* </MapView> */ }
-
-      <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
-        <Text style={styles.sosButtonText}>SOS</Text>
-      </TouchableOpacity>
+      <View style={styles.datePickerContainer}>
+        <Button onPress={() => setShowStartPicker(true)} title="Start Date" />
+        <Text>{startDate.toLocaleDateString()}</Text>
+        {showStartPicker && (
+          <DateTimePicker
+            testID="startDatePicker"
+            value={startDate}
+            mode="date"
+            display="default"
+            onChange={onChangeStartDate}
+          />
+        )}
+        <Button onPress={() => setShowEndPicker(true)} title="End Date" />
+        <Text>{endDate.toLocaleDateString()}</Text>
+        {showEndPicker && (
+          <DateTimePicker
+            testID="endDatePicker"
+            value={endDate}
+            mode="date"
+            display="default"
+            onChange={onChangeEndDate}
+          />
+        )}
+      </View>
+      <MapView
+      ref={mapRef}
+      style={styles.map}
+      //for the mapType, add a conditional thing where
+      //if the OS is ios, then make mapType={mutedStandard} because it look less ugly
+      //i need to learn UI design
+      mapType={"standard"}
+      userInterfaceStyle={'dark'}
+      showsUserLocation={true}
+      userLocationPriority={'high'}
+      loadingEnabled={true}
+      loadingIndicatorColor={'#e66220'}
+      loadingBackgroundColor={'#091547'}
+      initialRegion={campusCoords}
+    >
+      {heatmapPoints.length > 0 &&
+        pointTypes.map((type) => {
+          const filteredPoints = heatmapPoints.filter((point) => point.type === type);
+          if (filteredPoints.length === 0) return null; // Skip rendering if no points for this type
+          return (
+            <Heatmap
+              key={type}
+              points={filteredPoints}
+              radius={50}
+              opacity={0.6}
+              gradient={{
+                colors: ["black", "darkred", "yellow", "white"],
+                startPoints: Platform.OS === "ios" ? [0.05, 0.11, 0.25, 0.45] : [0.1, 0.22, 0.5, 0.8],
+                colorMapSize: 256,
+              }}
+            />
+          );
+        })}
+      </MapView>
+      <Pressable style={styles.centerButton} onPress={() => centerMap()}>
+        <Text style={styles.buttonText}>Re-Center To Whole Campus</Text>
+      </Pressable>
+      <View style={styles.lastUpdatedContainer}>
+        <Text style={styles.lastUpdatedText}>
+          Last Updated: {formatLastUpdated(lastUpdated)}
+        </Text>
+      </View>
     </View>
   );
 }
 
- //Styles for component layout and appearance
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Take up all available space
-  },
-  pickerContainer: {
-    position: 'absolute', // Float above map
-    top: 20,
-    left: 0,
-    right: 0,
-    zIndex: 1, // Ensure picker appears above map
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    paddingHorizontal: 20,
-  },
-  picker: {
-    width: '100%',
+    flex: 1,
   },
   map: {
-    flex: 1, // Take up all container space
     width: '100%',
-    height: '100%',
+    height: '110%',
   },
-  sosButton: {
+  centerButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 40,
-    backgroundColor: 'red',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: '#e66220',
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    elevation: 5, // Android shadow effect
-    shadowColor: '#000',  // iOS shadow effect
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    paddingHorizontal: 17,
+    borderRadius: 8,
+    elevation: 3,
+    zIndex: 2,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pickerWrapper: {
+    backgroundColor: 'white',
+    borderRadius: 8, // Fully circular
+    overflow: 'hidden', // Ensure the Picker stays within the circle
+    padding: 0.5, // Add padding for better layout
+    margin: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  sosButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  picker: {
+    width: '100%',
+    backgroundColor: 'transparent', // Ensure the Picker itself is also transparent
+  },
+  pickerItem: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#444',
+  }, 
+  lastUpdatedContainer: {
+    position: "absolute",
+    right: 180, // Move it to the right side of the screen
+    bottom: 630, // You can adjust the bottom margin if needed
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    padding: 5,
+    borderRadius: 5,
+  },
+  lastUpdatedText: {
+    color: "white",
+    fontSize: 12,
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    padding: 7,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    margin: 1,
   },
 });
-
-
-
-/**
- * code below is for the `Index` component which fetches and displays a list of incidents from our database
- * in a scrollable view.
- *
- * @component
- * @returns {JSX.Element} The rendered component.
- *
-
- *
- * @function fetchIncidents
- * Fetches incidents from the Firebase Realtime Database and updates the state.
- *
- * @throws Will throw an error if the data fetching fails.
- *
- */
-
-// defines the structure/type of an incident object so that typescript knows the structure of the object
-// interface Incident {
-//   id: string;
-//   type: string;
-//   severity: string;
-//   location: { latitude: number; longitude: number };
-//   timestamp: number;
-//   description?: string;
-//   photos?: { [key: string]: string };
-// }
-
-// export default function Index() {
-//   const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
-//   const db = ref(database);
-//   const fetchIncidents = async () => {
-//     try {
-//       const snapshot = await get(child(db, 'incidents'));
-//       if (snapshot.exists()) {
-//         // we need to define the type of incidentsData as an array of objects with the above fields 
-//         // bc typescript doesn't know the type of data in the array and we need to tell it
-//         const incidentsData: Incident[] = []; 
-//         snapshot.forEach((childSnapshot) => {
-//           incidentsData.push({
-//             id: childSnapshot.key,
-//             ...childSnapshot.val()
-//           });
-//         });
-//         setIncidents(incidentsData);
-//       } else {
-//         console.log("No data available");
-//       }
-//     } catch (error) {
-//       console.error("Error fetching data:", error);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchIncidents();
-//   }, []);
-
-//   return (
-//     <ScrollView contentContainerStyle={{
-//       flex: 1,
-//       justifyContent: "center",
-//       alignItems: "center",
-//       padding: 20
-//     }}>
-//       <Text style={{fontSize: 24, fontWeight: 'bold', marginBottom: 20}}>Incidents:</Text>
-//       {incidents.map((incident) => (
-//         <View key={incident.id} style={
-//           {marginBottom: 20, borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5}}>
-//           <Text>Type: {incident.type}</Text>
-//           <Text>Severity: {incident.severity}</Text>
-//           <Text>Description: {incident.description || 'No description'}</Text>
-//           <Text>Latitude: {incident.location.latitude}</Text>
-//           <Text>Longitude: {incident.location.longitude}</Text>
-//           <Text>Timestamp: {new Date(incident.timestamp).toLocaleString()}</Text>
-//           <Text>Photos: {incident.photos ? Object.keys(incident.photos).length : 'No photos'}</Text>
-//         </View>
-//       ))}
-//       <Button title="Refresh Incidents" onPress={fetchIncidents} />
-//     </ScrollView>
-//   );
-// }
-
-
-// code for adding dummy data to firebase
-// export default function Index() {
-//   const addIncidents = () => {
-//     const incidentsRef = ref(database, 'incidents');
-
-//     // adding first incident
-//     const newIncidentRef1 = push(incidentsRef);
-//     if (newIncidentRef1.key) {
-//       const photosRef = ref(database, `${newIncidentRef1.key}/photos`);
-//       const photoKey1 = push(photosRef).key;
-//       const photoKey2 = push(photosRef).key;
-
-//       set(newIncidentRef1, {
-//         location: {
-//           latitude: 37.7749,
-//           longitude: -122.4194
-//         },
-//         timestamp: Date.now(),
-//         type: "sexual_harassment",
-//         severity: "high",
-//         description: "Incident occurred near the downtown area",
-//         photos: {
-//           [photoKey1 || 'photo1']: "https://firebasestorage.googleapis.com/example1.jpg",
-//           [photoKey2 || 'photo2']: "https://firebasestorage.googleapis.com/example2.jpg"
-//         }
-//       });
-//     }
-
-//     // adding second incident
-//     const newIncidentRef2 = push(incidentsRef);
-//     set(newIncidentRef2, {
-//       location: {
-//         latitude: 40.7128,
-//         longitude: -74.0060
-//       },
-//       timestamp: Date.now(),
-//       type: "drunk_driving",
-//       severity: "moderate",
-//       description: null,
-//       photos: null
-//     });
-//   };
-
-//   return (
-//     <View
-//       style={{
-//         flex: 1,
-//         justifyContent: "center",
-//         alignItems: "center",
-//       }}
-//     >
-//       <Text>Hello!!</Text>
-//       <Button title="Add Incidents" onPress={addIncidents} />
-//     </View>
-//   );
-// }

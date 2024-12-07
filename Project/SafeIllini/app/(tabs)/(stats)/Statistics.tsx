@@ -1,9 +1,10 @@
+/* eslint-disable import/no-unresolved */
 //update the labels to the standard labels, and severity. plus fix the styling
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Dimensions, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { BarChart } from 'react-native-chart-kit';
-import { database } from '../../../configs/firebaseConfig'; // Import the Firebase configuration
+import { database } from "@/configs/firebaseConfig";
 import { ref, onValue } from 'firebase/database';
 import { Dayjs } from 'dayjs';
 import { } from 'react-native';
