@@ -240,8 +240,6 @@ export default function Home() {
     );
   };
 
-  const sheetRef = React.useRef(null);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
