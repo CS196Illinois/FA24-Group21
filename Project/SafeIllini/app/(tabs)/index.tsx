@@ -310,8 +310,47 @@ export default function Home() {
           <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints} enableDismissOnClose={false} enablePanDownToClose={false}>
             {renderBottomSheetContent()}
           </BottomSheetModal>
-
-          
+          {/* Modal for displaying incident details */}
+          <Modal
+            visible={modalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={closeModal}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {selectedIncident && (
+                  <>
+                    <Text style={styles.modalTitle}>Incident Details</Text>
+                    <Text>
+                      Type:{" "}
+                      {
+                        INCIDENT_TYPE_LABELS.find((item) => item.value === selectedIncident.type)?.label ||
+                        "Unknown Type"
+                      }
+                    </Text>
+                    <Text>
+                      Severity:{" "}
+                      {
+                        SEVERITY_LEVEL_LABELS.find((item) => item.value === selectedIncident.severity)?.label ||
+                        "Unknown Severity"
+                      }
+                    </Text>
+                    <Text>
+                      Description: {selectedIncident.description || "No description available"}
+                    </Text>
+                    <Text>
+                      Reported At:{" "}
+                      {new Date(selectedIncident.timestamp).toLocaleString()}
+                    </Text>
+                    <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
         </View>
         {/* for testing push notifs, comment all the above code and uncomment the below code */}
         {/* this will not work unless you have an Expo Account and are part of the CS124 org on Expo (Yash must add you specifically) */}
@@ -378,6 +417,55 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  bottomSheetContent: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 16,
+  },
+  bottomSheetHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  incidentItem: {
+    marginBottom: 10,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  incidentText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "red",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  }
 });
 
 
