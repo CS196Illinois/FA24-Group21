@@ -1,7 +1,7 @@
 /* eslint-disable import/no-unresolved */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Text, View, StyleSheet, TouchableOpacity, Linking, Alert, FlatList, Modal } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { GestureHandlerRootView, Pressable } from "react-native-gesture-handler";
 import { BottomSheetModalProvider, BottomSheetModal, BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { Picker } from "@react-native-picker/picker";
 import { ref, set, onValue } from 'firebase/database';
@@ -317,11 +317,11 @@ export default function Home() {
             }
           </MapView>
 
-          <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
+          <Pressable style={styles.sosButton} onPress={callCampusPolice}>
             <Text style={styles.sosButtonText}>SOS</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
+          <TouchableOpacity style={styles.centerButton} onPress={recenterMap}>
             <Text style={styles.recenterButtonText}>Recenter</Text>
           </TouchableOpacity>
 
@@ -431,6 +431,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    marginBottom: 30,
   },
   sosButtonText: {
     color: 'white',
@@ -486,15 +487,28 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  recenterButton: {
-    position: "absolute",
+  // recenterButton: {
+  //   position: "absolute",
+  //   right: 20,
+  //   bottom: 100,
+  //   backgroundColor: "blue",
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 20,
+  //   borderRadius: 30,
+  //   // zIndex: 2,
+  // },
+  centerButton: {
+    position: 'absolute',
     right: 20,
     bottom: 100,
-    backgroundColor: "blue",
     paddingVertical: 10,
     paddingHorizontal: 20,
+    marginBottom: 20,
+    // bottom: 20,
+    // alignSelf: 'center',
+    backgroundColor: '#e66220',
     borderRadius: 30,
-    zIndex: 2,
+    elevation: 3,
   },
   recenterButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
