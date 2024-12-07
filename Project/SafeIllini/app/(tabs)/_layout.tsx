@@ -1,10 +1,15 @@
 import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 
-
 export default function TabLayout() {
   return (
+
+    
+
+    
+    
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: 'e8def8',
@@ -32,16 +37,22 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="Statistics"
+        name="(stats)"
         options={{
           title: 'Statistics',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} color={color} size={24}/>
+            <Ionicons 
+              name={focused ? 'stats-chart' : 'stats-chart-outline'} 
+              color={color} 
+              size={24}
+            />
           ),
         }}
-      />
+/>
   
 
     </Tabs>
+
+    
   );
 }
