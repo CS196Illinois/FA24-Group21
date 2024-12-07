@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import Button from "@/components/Button";
-import SubmitButton from "../../components/SubmitButton";
-import ThumbnailView from "../../components/ThumbnailView";
+import SubmitButton from "@/components/SubmitButton";
+import ThumbnailView from "@/components/ThumbnailView";
 import * as Location from 'expo-location';
 import { database } from "@/configs/firebaseConfig"
 import { ref, push, set, update, child } from 'firebase/database';
