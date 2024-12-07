@@ -236,11 +236,20 @@ export default function AddIncident() {
 
           <View style={addIncidentStyles.card}>
             <Text style={addIncidentStyles.label}>Time</Text>
-            <View style={addIncidentStyles.locationDateContainer}>
-              <Text style={addIncidentStyles.dateTime}>{formatDateTime(date)}</Text>
+            <View style={{flexDirection: 'row', width: '100%'}}>
+              <Text style={[addIncidentStyles.dateTime]}>{formatDateTime(date)}</Text>
+              <Button
+                label="Now"
+                onPress={() => {
+
+                  setDate(new Date(Date.now()));
+                  // alert('Time and Date set to now!');
+                }}
+                style={addIncidentStyles.smallButton}
+              />
             </View>
+
             <Button onPress={() => {
-              setDate(new Date(Date.now()))
               setShowDatePicker(true);
             }} label="Change Time" />
             {showDatePicker && (
@@ -249,9 +258,15 @@ export default function AddIncident() {
                 value={date}
                 mode='date'
                 is24Hour={true}
-                onChange={(event: any, newDate?: Date) => {
-                  if (newDate) {
-                    setDate(newDate);
+                onChange={(event, newDate) => {
+                  if (newDate == undefined) {
+
+                  } else if (newDate.getTime() > Date.now()) {
+                    alert('You cannot report an incident in the future');
+                    setShowTimePicker(false);
+                    setShowDatePicker(false);
+                  } else {
+                    newDate != undefined && setDate(newDate);
                     setShowDatePicker(false);
                     setShowTimePicker(true);
                   }
@@ -264,10 +279,18 @@ export default function AddIncident() {
                 value={date}
                 mode='time'
                 is24Hour={true}
-                onChange={(event: any, newDate?: Date) => {
-                  if (newDate) {
-                    setDate(newDate);
+                onChange={(event, newDate) => {
+                  if (newDate == undefined) {
                     setShowTimePicker(false);
+                    alert('Date selected is undefined');
+                  } else if (newDate.getTime() > Date.now()) {
+                    setDate(new Date(Date.now()));
+                    setShowTimePicker(false);
+                    setShowDatePicker(false);
+                    alert('You cannot report an incident in the future');
+                  } else {
+                      setDate(newDate);
+                      setShowTimePicker(false);
                   }
                 }}
               />
