@@ -99,6 +99,7 @@ export default function Home() {
   // bottom sheet for latest incidents
   const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const mapRef = React.useRef<MapView>(null);
   const snapPoints = useMemo(() => ["12%", "50%"], []);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null); // State to track the selected incident
 
@@ -195,6 +196,20 @@ export default function Home() {
   //   }
   // };
 
+  const recenterMap = () => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: 40.107491,
+          longitude: -88.227203,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        1000
+      );
+    }
+  };
+
   const renderBottomSheetContent = () => {
     const latestIncidents = [...incidents]
       .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp (most recent first)
@@ -259,6 +274,7 @@ export default function Home() {
           </View>
           {/* Map component showing campus area. For more options, go to https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md */}
           <MapView
+            ref={mapRef}
             style={styles.map}
             mapType="satellite"
             initialRegion={{
@@ -288,10 +304,10 @@ export default function Home() {
                     longitude: incident.location.longitude,
                   }}
                   pinColor={getPinColor(incident.type)} // Set pin color based on incident type
-                  title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
+                  // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
                   onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
                   // Show description if available or show timestamp
-                  description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+                  // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
                 // pinColor="red"
                 // title="Test Marker"
                 // description="This is a test marker"
@@ -304,6 +320,11 @@ export default function Home() {
           <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
             <Text style={styles.sosButtonText}>SOS</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
+            <Text style={styles.recenterButtonText}>Recenter</Text>
+          </TouchableOpacity>
+
 
           <BottomSheetModal ref={bottomSheetRef} index={0} snapPoints={snapPoints} enableDismissOnClose={false} enablePanDownToClose={false}>
             {renderBottomSheetContent()}
@@ -366,6 +387,7 @@ export default function Home() {
             }}
           />
         </View> */}
+
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
@@ -463,7 +485,18 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "white",
     fontWeight: "bold",
-  }
+  },
+  recenterButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    backgroundColor: "blue",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    zIndex: 2,
+  },
+  recenterButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
 
 
