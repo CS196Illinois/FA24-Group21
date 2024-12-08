@@ -41,8 +41,6 @@ const formatLastUpdated = (timestamp: any) => {
 //   description?: string;
 //   photos?: { [key: string]: string };
 // }
-const db = ref(database);
-
 export default function HeatMap() {
   const mapRef = useRef<MapView | null>(null);
   const pointTypes = ['low', 'medium', 'high'];
@@ -56,15 +54,22 @@ export default function HeatMap() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
 
-  const [heatmapPoints, setHeatmapPoints] = useState<
-    { latitude: number; longitude: number; weight: number; type: string }[]
+  const [heatmapPoints, setHeatmapPoints] = useState<{
+    latitude: number;
+    longitude: number;
+    weight: number;
+    type: string
+  }[]
   >([]);
+  // to initialize heatmap properly 
+  const [isMapReady, setIsMapReady] = useState(false);
 
   //i should add something like last updated on (insert time)
   useEffect(() => {
     // putting the fetchIncidents function inside the useEffect hook
     const incidentsRef = ref(database, 'incidents');
     const fetchIncidents = onValue(incidentsRef, (snapshot) => {
+      if (!isMapReady) return; // Skip fetching incidents if map is not ready
       const data = snapshot.val();
       if (data) { // check if data is available
         let incidentsData: Incident[] = [];
@@ -78,8 +83,9 @@ export default function HeatMap() {
         // Filter incidents based on selectedSeverity and date range
         incidentsData = incidentsData.filter(incident => {
           const incidentDate = new Date(incident.timestamp);
-          return (selectedSeverity === 'all' || incident.severity === selectedSeverity) &&
-            incidentDate >= startDate && incidentDate <= endDate;
+          return (selectedSeverity === 'all' || incident.severity === selectedSeverity)
+            && incidentDate >= startDate
+            && incidentDate <= endDate;
         });
 
         // Filter incidents based on current selectedSeverity state
@@ -106,7 +112,7 @@ export default function HeatMap() {
     return () => fetchIncidents();
 
     // fetchIncidents();
-  }, [selectedSeverity, startDate, endDate]);
+  }, [selectedSeverity, startDate, endDate, isMapReady]);
 
   const onChangeStartDate = (event: any, selectedDate: any) => {
     const currentDate = selectedDate || startDate;
@@ -187,8 +193,13 @@ export default function HeatMap() {
           // loadingIndicatorColor={'#e66220'}
           // loadingBackgroundColor={'#091547'}
           initialRegion={campusCoords}
+          onMapReady={() => {
+            console.log("Map is ready!")
+            setIsMapReady(true)
+          }}
+          key="heatmap-map"
         >
-          {heatmapPoints.length > 0 &&
+          {isMapReady && heatmapPoints.length > 0 &&
             pointTypes.map((type) => {
               const filteredPoints = heatmapPoints.filter((point) => point.type === type);
               if (filteredPoints.length === 0) return null; // Skip rendering if no points for this type
@@ -200,7 +211,7 @@ export default function HeatMap() {
                   opacity={0.6}
                   gradient={{
                     colors: ["black", "darkred", "yellow", "white"],
-                    startPoints: Platform.OS === "ios" ? [0.05, 0.11, 0.25, 0.45] : [0.1, 0.22, 0.5, 0.8],
+                    startPoints: [0.1, 0.22, 0.5, 0.8],
                     colorMapSize: 256,
                   }}
                 />
