@@ -22,9 +22,9 @@ export default function StatTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Heatmap"
+        name="HeatMap"
         options={{
-          title: 'Heatmap',
+          title: 'Heat Map',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'location-sharp' : 'location-outline'} color={color} size={24} />
           ),
