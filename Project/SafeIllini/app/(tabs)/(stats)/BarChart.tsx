@@ -1,37 +1,26 @@
 /* eslint-disable import/no-unresolved */
 //update the labels to the standard labels, and severity. plus fix the styling
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Dimensions, TouchableOpacity } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import { database } from "@/configs/firebaseConfig";
 import { ref, onValue } from 'firebase/database';
-import { Dayjs } from 'dayjs';
-import { } from 'react-native';
+import { Incident, SeverityLevel } from '@/types/incidents';
+import { INCIDENT_TYPE_LABELS } from '@/constants/Incidents';
 
-const StatisticsScreen = () => {
+
+
+export default function Bar_Chart() {
   const { width, height } = useWindowDimensions();
   const chartWidth = width * 0.9; // 90% of screen width
   const chartHeight = height * 0.3; // 30% of screen height
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
+  const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel>();
   const [selectedTime, setSelectedTime] = useState<string>('all');
   const [filteredData, setFilteredData] = useState<Incident[]>([]);
   const [severityOpen, setSeverityOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
 
-  interface Incident {
-    id: string;
-    description: string;
-    location: {
-      latitude: number;
-      longitude: number;
-    };
-    severity: string;
-    timestamp: number;
-    type: string;
-    photos?: string[];
-  }
 
   // Update the data fetching logic
   useEffect(() => {
@@ -93,23 +82,25 @@ const StatisticsScreen = () => {
 
 
   const generateChartData = () => {
-    const types = ['harassment','sexual_harassment', 'drunk_driving', 'theft', 'high_noise', 'assault', 'other'];
+    const types = INCIDENT_TYPE_LABELS.map(type => type.value);
+    // const types = ['harassment', 'sexual_harassment', 'drunk_driving', 'theft', 'high_noise', 'assault', 'other'];
     const data = types.map(
       (type) => filteredData.filter((incident) => incident.type === type).length
     );
 
     return {
-      labels: ['Harassment','Sexual Harassment', 'Drunk Driving', 'Theft', 'High Noise', 'Assault', 'Other'],
+      labels: INCIDENT_TYPE_LABELS.map(label => label.label),
+      // labels: ['Harassment', 'Sexual Harassment', 'Drunk Driving', 'Theft', 'High Noise', 'Assault', 'Other'],
       datasets: [
         {
-          data,
+          data
         },
       ],
     };
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       showsHorizontalScrollIndicator={true}
@@ -118,64 +109,64 @@ const StatisticsScreen = () => {
       <Text style={styles.title}>Incident Statistics</Text>
 
       <View style={styles.dropdownContainerS}>
-  <Text style={styles.dropdownLabel}>Severity:</Text>
-  <TouchableOpacity 
-    style={styles.dropdownButton}
-    onPress={() => setSeverityOpen(!severityOpen)}
-  >
-    <Text style={styles.dropdownButtonText}>{selectedSeverity}</Text>
-  </TouchableOpacity>
-  {severityOpen && (
-    <View style={styles.dropdownListS}>
-      <TouchableOpacity onPress={() => {setSelectedSeverity('all'); setSeverityOpen(false)}}>
-        <Text style={styles.dropdownItem}>All</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedSeverity('low'); setSeverityOpen(false)}}>
-        <Text style={styles.dropdownItem}>Low</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedSeverity('medium'); setSeverityOpen(false)}}>
-        <Text style={styles.dropdownItem}>Medium</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedSeverity('high'); setSeverityOpen(false)}}>
-        <Text style={styles.dropdownItem}>High</Text>
-      </TouchableOpacity>
-    </View>
-  )}
+        <Text style={styles.dropdownLabel}>Severity:</Text>
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setSeverityOpen(!severityOpen)}
+        >
+          <Text style={styles.dropdownButtonText}>{selectedSeverity}</Text>
+        </TouchableOpacity>
+        {severityOpen && (
+          <View style={styles.dropdownListS}>
+            <TouchableOpacity onPress={() => { setSelectedSeverity('all'); setSeverityOpen(false) }}>
+              <Text style={styles.dropdownItem}>All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSeverity('low'); setSeverityOpen(false) }}>
+              <Text style={styles.dropdownItem}>Low</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSeverity('medium'); setSeverityOpen(false) }}>
+              <Text style={styles.dropdownItem}>Medium</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSeverity('high'); setSeverityOpen(false) }}>
+              <Text style={styles.dropdownItem}>High</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-<View style={styles.dropdownContainer}>
-  <Text style={styles.dropdownLabel}>Time:</Text>
-  <TouchableOpacity 
-    style={styles.dropdownButton}
-    onPress={() => setTimeOpen(!timeOpen)}
-  >
-    <Text style={styles.dropdownButtonText}>{selectedTime}</Text>
-  </TouchableOpacity>
-  {timeOpen && (
-    <View style={styles.dropdownList}>
-      <TouchableOpacity onPress={() => {setSelectedTime('all'); setTimeOpen(false)}}>
-        <Text style={styles.dropdownItem}>All Time</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedTime('last 1 hour'); setTimeOpen(false)}}>
-        <Text style={styles.dropdownItem}>Last 1 Hour</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedTime('last 24 hours'); setTimeOpen(false)}}>
-        <Text style={styles.dropdownItem}>Last 24 Hours</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedTime('last 1 week'); setTimeOpen(false)}}>
-        <Text style={styles.dropdownItem}>Last 1 Week</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => {setSelectedTime('last 1 month'); setTimeOpen(false)}}>
-        <Text style={styles.dropdownItem}>Last 1 Month</Text>
-      </TouchableOpacity>
-    </View>
-  )}
-</View>
-</View>
-      <ScrollView   horizontal={true} 
-  showsHorizontalScrollIndicator={true}
-  style={styles.chartScrollContainer}
-  contentContainerStyle={styles.chartContentContainer}
-  > 
+        <View style={styles.dropdownContainer}>
+          <Text style={styles.dropdownLabel}>Time:</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setTimeOpen(!timeOpen)}
+          >
+            <Text style={styles.dropdownButtonText}>{selectedTime}</Text>
+          </TouchableOpacity>
+          {timeOpen && (
+            <View style={styles.dropdownList}>
+              <TouchableOpacity onPress={() => { setSelectedTime('all'); setTimeOpen(false) }}>
+                <Text style={styles.dropdownItem}>All Time</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setSelectedTime('last 1 hour'); setTimeOpen(false) }}>
+                <Text style={styles.dropdownItem}>Last 1 Hour</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setSelectedTime('last 24 hours'); setTimeOpen(false) }}>
+                <Text style={styles.dropdownItem}>Last 24 Hours</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setSelectedTime('last 1 week'); setTimeOpen(false) }}>
+                <Text style={styles.dropdownItem}>Last 1 Week</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setSelectedTime('last 1 month'); setTimeOpen(false) }}>
+                <Text style={styles.dropdownItem}>Last 1 Month</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+      <ScrollView horizontal={true}
+        showsHorizontalScrollIndicator={true}
+        style={styles.chartScrollContainer}
+        contentContainerStyle={styles.chartContentContainer}
+      >
         <BarChart
           data={generateChartData()}
           width={chartWidth}
@@ -193,7 +184,7 @@ const StatisticsScreen = () => {
               borderRadius: 16,
             },
             barPercentage: 0.8,
-            
+
             propsForBackgroundLines: {
               strokeWidth: 1,
               strokeDasharray: '',
@@ -204,11 +195,11 @@ const StatisticsScreen = () => {
             },
             propsForVerticalLabels: {
               rotation: 45
-            } 
+            }
 
           }}
           fromZero
-          fromNumber={Math.max(...generateChartData().datasets[0].data) > 4 ? 
+          fromNumber={Math.max(...generateChartData().datasets[0].data) > 4 ?
             Math.max(...generateChartData().datasets[0].data) : 4}
           showValuesOnTopOfBars
           flatColor
@@ -216,7 +207,7 @@ const StatisticsScreen = () => {
           segments={4}
           style={styles.chart}
         />
-        </ScrollView>
+      </ScrollView>
     </ScrollView>
   );
 };
@@ -240,16 +231,16 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     width: '90%',
     marginBottom: 10,
-    zIndex: 2000, 
-    elevation: 2000, 
-    position: 'relative', 
+    zIndex: 2000,
+    elevation: 2000,
+    position: 'relative',
   },
   dropdownContainerS: {
     width: '90%',
     marginBottom: 10,
-    zIndex: 3000, 
-    elevation: 3000, 
-    position: 'relative', 
+    zIndex: 3000,
+    elevation: 3000,
+    position: 'relative',
   },
   dropdownLabel: {
     fontSize: 16,
@@ -288,8 +279,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
-    zIndex: 2000, 
-    elevation: 2000, 
+    zIndex: 2000,
+    elevation: 2000,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -307,8 +298,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 12,
-    zIndex: 3000, 
-    elevation: 3000, 
+    zIndex: 3000,
+    elevation: 3000,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -333,7 +324,7 @@ const styles = StyleSheet.create({
   },
   chartContentContainer: {
     paddingHorizontal: 10,
-    paddingBottom: 20, 
+    paddingBottom: 20,
   },
   chart: {
     marginVertical: 8,
@@ -342,4 +333,3 @@ const styles = StyleSheet.create({
   }
 });
 
-export default StatisticsScreen;

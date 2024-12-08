@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 
 
-export default function TabLayout() {
+export default function StatTabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -11,18 +11,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: 'e8def8',
       }}
     >
-
-    <Tabs.Screen
-        name="Statistics"
+      <Tabs.Screen
+        name="BarChart"
         options={{
-          title: 'Statistics',
+          title: 'Bar Chart',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} color={color} size={24}/>
           ),
         }}
       />
-
       <Tabs.Screen
         name="Heatmap"
         options={{
@@ -32,10 +30,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      
-  
-
     </Tabs>
   );
 }
