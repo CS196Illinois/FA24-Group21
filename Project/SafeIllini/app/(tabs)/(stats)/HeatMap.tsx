@@ -1,15 +1,14 @@
 /* eslint-disable import/no-unresolved */
+import React, { useState, useEffect, useRef } from "react";
 import { Text, StyleSheet, View, Pressable, Button } from "react-native";
 import { database } from "@/configs/firebaseConfig";
-import { ref, get, child, onValue } from 'firebase/database';
+import { ref, onValue } from 'firebase/database';
 import { Picker } from '@react-native-picker/picker';
 import MapView, { Heatmap } from 'react-native-maps';
 import { Platform } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Incident } from '@/types/incidents';
-import { INCIDENT_TYPE_LABELS } from '@/constants/Incidents';
-
-import React, { useState, useEffect, useRef } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 //this is used to set the "weight" of each heatmap point depending on its severity (low, medium, high)
 //low severity is smallest, high severity is highest
@@ -50,7 +49,6 @@ export default function HeatMap() {
 
   const [selectedSeverity, setSelectedSeverity] = useState('all');
 
-  const [incidents, setIncidents] = useState<Incident[]>([]); // defining incidents as an array of Incident objects
   const [lastUpdated, setLastUpdated] = useState<string | null>(null); // New state for last updated time
 
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // 7 days ago
@@ -81,34 +79,32 @@ export default function HeatMap() {
         incidentsData = incidentsData.filter(incident => {
           const incidentDate = new Date(incident.timestamp);
           return (selectedSeverity === 'all' || incident.severity === selectedSeverity) &&
-          incidentDate >= startDate && incidentDate <= endDate;
+            incidentDate >= startDate && incidentDate <= endDate;
         });
-        
+
         // Filter incidents based on current selectedSeverity state
         if (selectedSeverity !== 'all') {
           incidentsData = incidentsData.filter(incident => incident.severity === selectedSeverity);
         }
-        
-        setIncidents(incidentsData); // update the incidents state with the fetched data
+
         const points = incidentsData.length > 0
-        ? incidentsData.map((incident) => ({
-          latitude: incident.location.latitude,
-          longitude: incident.location.longitude,
-          weight: getPointWeight(incident.severity), // Corrected here
-          type: incident.severity,
-        }))
-        : [];
+          ? incidentsData.map((incident) => ({
+            latitude: incident.location.latitude,
+            longitude: incident.location.longitude,
+            weight: getPointWeight(incident.severity), // Corrected here
+            type: incident.severity,
+          }))
+          : [];
         setHeatmapPoints(points);
         const now = new Date();
         setLastUpdated(now.toISOString()); // Use ISO format for consistency
       } else {
         console.log("No data available");
-        setIncidents([]); // clear the incidents state if no data is available
       }
     });
     // cleanup function to remove listener when component unmounts
     return () => fetchIncidents();
-    
+
     // fetchIncidents();
   }, [selectedSeverity, startDate, endDate]);
 
@@ -138,87 +134,89 @@ export default function HeatMap() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={selectedSeverity}
-          onValueChange={(itemValue) => setSelectedSeverity(itemValue)}
-          style={styles.picker}
-          itemStyle={styles.pickerItem}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={selectedSeverity}
+            onValueChange={(itemValue) => setSelectedSeverity(itemValue)}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            <Picker.Item label="All Incidents" value="all" />
+            <Picker.Item label="Low Severity" value="low" />
+            <Picker.Item label="Medium Severity" value="medium" />
+            <Picker.Item label="High Severity" value="high" />
+          </Picker>
+        </View>
+        <View style={styles.datePickerContainer}>
+          <Button onPress={() => setShowStartPicker(true)} title="Start Date" />
+          <Text>{startDate.toLocaleDateString()}</Text>
+          {showStartPicker && (
+            <DateTimePicker
+              testID="startDatePicker"
+              value={startDate}
+              mode="date"
+              display="default"
+              onChange={onChangeStartDate}
+            />
+          )}
+          <Button onPress={() => setShowEndPicker(true)} title="End Date" />
+          <Text>{endDate.toLocaleDateString()}</Text>
+          {showEndPicker && (
+            <DateTimePicker
+              testID="endDatePicker"
+              value={endDate}
+              mode="date"
+              display="default"
+              onChange={onChangeEndDate}
+            />
+          )}
+        </View>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          //for the mapType, add a conditional thing where
+          //if the OS is ios, then make mapType={mutedStandard} because it look less ugly
+          //i need to learn UI design
+          mapType="satellite"
+          // userInterfaceStyle={'dark'}
+          // showsUserLocation={true}
+          // userLocationPriority={'high'}
+          // loadingEnabled={true}
+          // loadingIndicatorColor={'#e66220'}
+          // loadingBackgroundColor={'#091547'}
+          initialRegion={campusCoords}
         >
-          <Picker.Item label="All Incidents" value="all" />
-          <Picker.Item label="Low Severity" value="low" />
-          <Picker.Item label="Medium Severity" value="medium" />
-          <Picker.Item label="High Severity" value="high" />
-        </Picker>
+          {heatmapPoints.length > 0 &&
+            pointTypes.map((type) => {
+              const filteredPoints = heatmapPoints.filter((point) => point.type === type);
+              if (filteredPoints.length === 0) return null; // Skip rendering if no points for this type
+              return (
+                <Heatmap
+                  key={type}
+                  points={filteredPoints}
+                  radius={50}
+                  opacity={0.6}
+                  gradient={{
+                    colors: ["black", "darkred", "yellow", "white"],
+                    startPoints: Platform.OS === "ios" ? [0.05, 0.11, 0.25, 0.45] : [0.1, 0.22, 0.5, 0.8],
+                    colorMapSize: 256,
+                  }}
+                />
+              );
+            })}
+        </MapView>
+        <Pressable style={styles.centerButton} onPress={() => centerMap()}>
+          <Text style={styles.buttonText}>Re-Center To Whole Campus</Text>
+        </Pressable>
+        <View style={styles.lastUpdatedContainer}>
+          <Text style={styles.lastUpdatedText}>
+            Last Updated: {formatLastUpdated(lastUpdated)}
+          </Text>
+        </View>
       </View>
-      <View style={styles.datePickerContainer}>
-        <Button onPress={() => setShowStartPicker(true)} title="Start Date" />
-        <Text>{startDate.toLocaleDateString()}</Text>
-        {showStartPicker && (
-          <DateTimePicker
-            testID="startDatePicker"
-            value={startDate}
-            mode="date"
-            display="default"
-            onChange={onChangeStartDate}
-          />
-        )}
-        <Button onPress={() => setShowEndPicker(true)} title="End Date" />
-        <Text>{endDate.toLocaleDateString()}</Text>
-        {showEndPicker && (
-          <DateTimePicker
-            testID="endDatePicker"
-            value={endDate}
-            mode="date"
-            display="default"
-            onChange={onChangeEndDate}
-          />
-        )}
-      </View>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        //for the mapType, add a conditional thing where
-        //if the OS is ios, then make mapType={mutedStandard} because it look less ugly
-        //i need to learn UI design
-        mapType={"satellite"}
-        userInterfaceStyle={'dark'}
-        showsUserLocation={true}
-        userLocationPriority={'high'}
-        loadingEnabled={true}
-        loadingIndicatorColor={'#e66220'}
-        loadingBackgroundColor={'#091547'}
-        initialRegion={campusCoords}
-      >
-        {heatmapPoints.length > 0 &&
-          pointTypes.map((type) => {
-            const filteredPoints = heatmapPoints.filter((point) => point.type === type);
-            if (filteredPoints.length === 0) return null; // Skip rendering if no points for this type
-            return (
-              <Heatmap
-                key={type}
-                points={filteredPoints}
-                radius={50}
-                opacity={0.6}
-                gradient={{
-                  colors: ["black", "darkred", "yellow", "white"],
-                  startPoints: Platform.OS === "ios" ? [0.05, 0.11, 0.25, 0.45] : [0.1, 0.22, 0.5, 0.8],
-                  colorMapSize: 256,
-                }}
-              />
-            );
-          })}
-      </MapView>
-      <Pressable style={styles.centerButton} onPress={() => centerMap()}>
-        <Text style={styles.buttonText}>Re-Center To Whole Campus</Text>
-      </Pressable>
-      <View style={styles.lastUpdatedContainer}>
-        <Text style={styles.lastUpdatedText}>
-          Last Updated: {formatLastUpdated(lastUpdated)}
-        </Text>
-      </View>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

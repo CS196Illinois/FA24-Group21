@@ -106,7 +106,7 @@ export default function Bar_Chart() {
       showsHorizontalScrollIndicator={true}
       scrollEnabled={true}
     >
-      <Text style={styles.title}>Incident Statistics</Text>
+      {/* <Text style={styles.title}>Incident Statistics</Text> */}
 
       <View style={styles.dropdownContainerS}>
         <Text style={styles.dropdownLabel}>Severity:</Text>

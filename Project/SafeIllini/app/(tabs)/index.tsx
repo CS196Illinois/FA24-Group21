@@ -92,7 +92,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 export default function Home() {
   // notification system
   // const { expoPushToken, notification, sendPushNotification } = useNotifications();
-  
+
   // bottom sheet for latest incidents
   const [modalVisible, setModalVisible] = useState(false); // State to track modal visibility
   const bottomSheetRef = useRef<BottomSheetModal>(null);
@@ -172,7 +172,7 @@ export default function Home() {
 
   // initiate emergency call to campus police
   const callCampusPolice = () => {
-    const campusPoliceNumber = "2173331216"; 
+    const campusPoliceNumber = "2173331216";
     Linking.openURL(`tel:${campusPoliceNumber}`)
       .catch((err) => {
         console.error("Failed to open dialer:", err);
@@ -211,18 +211,18 @@ export default function Home() {
     const latestIncidents = [...incidents]
       .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp (most recent first)
       .slice(0, 5); // Get the latest 5 incidents
-  
+
     // Helper functions to find labels from constants
     const getIncidentTypeLabel = (type: string) => {
       const typeObj = INCIDENT_TYPE_LABELS.find((item) => item.value === type);
       return typeObj ? typeObj.label : "Unknown Type";
     };
-  
+
     const getSeverityLabel = (severity: string) => {
       const severityObj = SEVERITY_LEVEL_LABELS.find((item) => item.value === severity);
       return severityObj ? severityObj.label : "Unknown Severity";
     };
-  
+
     return (
       <BottomSheetView style={[styles.bottomSheetContent, { flex: 1 }]}>
         <Text style={styles.bottomSheetHeader}>Latest Incidents</Text>
@@ -303,8 +303,8 @@ export default function Home() {
                   pinColor={getPinColor(incident.type)} // Set pin color based on incident type
                   // title={`${incident.type.replace('_', ' ').toUpperCase()} - ${incident.severity}`}
                   onPress={() => handlePinLongPress(incident)} // Trigger modal on long press
-                  // Show description if available or show timestamp
-                  // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
+                // Show description if available or show timestamp
+                // description={incident.description || `Reported at ${new Date(incident.timestamp).toLocaleString()}`}
                 // pinColor="red"
                 // title="Test Marker"
                 // description="This is a test marker"
@@ -314,9 +314,9 @@ export default function Home() {
             }
           </MapView>
 
-          <Pressable style={styles.sosButton} onPress={callCampusPolice}>
+          <TouchableOpacity style={styles.sosButton} onPress={callCampusPolice}>
             <Text style={styles.sosButtonText}>SOS</Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.centerButton} onPress={recenterMap}>
             <Text style={styles.recenterButtonText}>Recenter</Text>
