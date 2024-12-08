@@ -5,17 +5,11 @@ import React from 'react';
 
 export default function TabLayout() {
   return (
-
-    
-
-    
-    
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: 'e8def8',
       }}
     >
-
       <Tabs.Screen
         name="AddIncident"
         options={{
@@ -25,7 +19,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="index"
         options={{
@@ -35,7 +28,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="(stats)"
         options={{
@@ -48,11 +40,7 @@ export default function TabLayout() {
             />
           ),
         }}
-/>
-  
-
+      />
     </Tabs>
-
-    
   );
 }
