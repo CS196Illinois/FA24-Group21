@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, ScrollView, useWindowDimensions, TouchableOpaci
 import { BarChart } from 'react-native-chart-kit';
 import { database } from "@/configs/firebaseConfig";
 import { ref, onValue } from 'firebase/database';
-import { Incident, SeverityLevel } from '@/types/incidents';
+import { Incident } from '@/types/incidents';
 import { INCIDENT_TYPE_LABELS } from '@/constants/Incidents';
 
 
@@ -15,7 +15,7 @@ export default function Bar_Chart() {
   const chartWidth = width * 0.9; // 90% of screen width
   const chartHeight = height * 0.3; // 30% of screen height
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel>();
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedTime, setSelectedTime] = useState<string>('all');
   const [filteredData, setFilteredData] = useState<Incident[]>([]);
   const [severityOpen, setSeverityOpen] = useState(false);
