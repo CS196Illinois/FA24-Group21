@@ -12,21 +12,22 @@ export default function StatTabLayout() {
       }}
     >
       <Tabs.Screen
-        name="HeatMap"
-        options={{
-          title: 'Heat Map',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'location-sharp' : 'location-outline'} color={color} size={24} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="BarChart"
         options={{
           title: 'Bar Chart',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} color={color} size={24}/>
+          ),
+        }}
+        />
+      <Tabs.Screen
+        name="HeatMap"
+        options={{
+          title: 'Heat Map',
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'location-sharp' : 'location-outline'} color={color} size={24} />
           ),
         }}
       />
